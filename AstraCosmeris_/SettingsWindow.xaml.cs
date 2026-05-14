@@ -125,7 +125,6 @@ namespace AstraCosmeris_
         {
             if (System.Windows.MessageBox.Show("CẢNH BÁO: Astra sẽ quên hết mọi thứ về cậu. Cậu có chắc chắn không?", "KHÔI PHỤC CÀI ĐẶT GỐC", MessageBoxButton.YesNo, MessageBoxImage.Error) == MessageBoxResult.Yes)
             {
-                DataManager.Data = new MemoryData();
                 DataManager.SaveData();
                 System.Windows.MessageBox.Show("Đã khôi phục cài đặt gốc.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 this.Close();

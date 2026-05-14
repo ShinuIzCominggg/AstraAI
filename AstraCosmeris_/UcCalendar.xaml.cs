@@ -35,6 +35,8 @@ namespace AstraCosmeris_
                 bool isToday = (displayDate.Year == DateTime.Now.Year && displayDate.Month == DateTime.Now.Month && i == DateTime.Now.Day);
                 DaysGrid.Children.Add(CreateDayCell(i.ToString(), isToday));
             }
+            int remainingCells = 42 - (offset + daysInMonth);
+            for (int i = 0; i < remainingCells; i++) DaysGrid.Children.Add(CreateDayCell(""));
         }
 
         private Border CreateDayCell(string dayText, bool isToday = false)

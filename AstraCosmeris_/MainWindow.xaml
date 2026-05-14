@@ -13,6 +13,7 @@
             <MenuItem Header="🗂️ Dashboard" Click="MenuDashboard_Click"/>
             <MenuItem Header="🍅 Pomodoro" Click="MenuPomodoro_Click"/>
             <MenuItem Header="⚙️ Settings" Click="MenuSettings_Click"/>
+            <MenuItem Header="❌ Exit" Click="MenuExit_Click"/>
         </ContextMenu>
     </Window.ContextMenu>
     <Grid>

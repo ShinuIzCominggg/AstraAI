@@ -248,6 +248,8 @@ namespace AstraCosmeris_
             new SettingsWindow().Show();
         }
 
+        private void MenuExit_Click(object sender, RoutedEventArgs e) => this.Close();
+
         // ==========================================
         // 5. RADAR & NHẮC NHỞ (REMINDER)
         // ==========================================
