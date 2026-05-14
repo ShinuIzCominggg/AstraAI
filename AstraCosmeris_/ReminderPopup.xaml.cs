@@ -13,16 +13,22 @@ namespace AstraCosmeris_
             InitializeComponent();
             MessageText.Text = text;
 
-            // Nhảy vị trí random trên màn hình cho người dùng lú luôn =))
             Random rnd = new Random();
             var workArea = SystemParameters.WorkArea;
-            this.Left = rnd.Next((int)workArea.Left, (int)(workArea.Right - this.Width));
-            this.Top = rnd.Next((int)workArea.Top, (int)(workArea.Bottom - this.Height));
 
-            // Hẹn giờ tự tắt
-            closeTimer = new DispatcherTimer();
-            closeTimer.Interval = TimeSpan.FromMilliseconds(ttlMs);
-            closeTimer.Tick += (s, e) => { closeTimer.Stop(); this.Close(); };
+            // Xử lý chống Crash nếu Width/Height chưa kịp nạp
+            double safeWidth = this.Width > 0 ? this.Width : 250;
+            double safeHeight = this.Height > 0 ? this.Height : 90;
+
+            this.Left = rnd.Next((int)workArea.Left, (int)(workArea.Right - safeWidth));
+            this.Top = rnd.Next((int)workArea.Top, (int)(workArea.Bottom - safeHeight));
+
+            closeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ttlMs) };
+            closeTimer.Tick += (s, e) =>
+            {
+                closeTimer.Stop();
+                this.Close();
+            };
             closeTimer.Start();
         }
     }

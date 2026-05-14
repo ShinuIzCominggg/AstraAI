@@ -18,19 +18,18 @@ namespace AstraCosmeris_
 
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
-            System.Windows.Application.Current.Shutdown(); // Tắt luôn app nếu không chịu cài đặt
+            System.Windows.Application.Current.Shutdown();
         }
 
         private void BtnTrial_Click(object sender, RoutedEventArgs e)
         {
-            // Bơm Key Trial của m vào đây để người ta xài thử
             MemoryManager.Data.ApiKey = "";
             MemoryManager.Data.ApiProvider = "Groq";
             MemoryManager.Data.ApiModel = "llama-3.1-8b-instant";
 
             MemoryManager.SaveMemory();
-            System.Windows.MessageBox.Show("Đã kích hoạt chế độ Dùng thử! Hãy trải nghiệm Astra nhé!", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
-            this.Close(); // Đóng Onboarding, Astra sẽ hiện ra
+            System.Windows.MessageBox.Show("Đã kích hoạt chế độ Dùng thử! Hãy trải nghiệm Astra nhé!", "Thành công", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            this.Close();
         }
 
         private void BtnStart_Click(object sender, RoutedEventArgs e)
@@ -38,7 +37,7 @@ namespace AstraCosmeris_
             string key = TxtApiKey.Text.Trim();
             if (string.IsNullOrEmpty(key))
             {
-                System.Windows.MessageBox.Show("Cậu quên nhập API Key kìa!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Cậu quên nhập API Key kìa!", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                 return;
             }
 
@@ -51,7 +50,7 @@ namespace AstraCosmeris_
             };
 
             MemoryManager.SaveMemory();
-            System.Windows.MessageBox.Show("Kết nối thành công! Astra đã sẵn sàng!", "Welcome", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("Kết nối thành công! Astra đã sẵn sàng!", "Welcome", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             this.Close();
         }
     }

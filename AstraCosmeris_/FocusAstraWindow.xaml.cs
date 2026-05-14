@@ -6,37 +6,29 @@ namespace AstraCosmeris_
     public partial class FocusAstraWindow : Window
     {
         private MainWindow parentMain;
-        public PomodoroChecklistWindow? checklist; // Thêm ? ở đây
+        public PomodoroChecklistWindow? checklist;
         public bool forceClose = false;
 
         public FocusAstraWindow(MainWindow main)
         {
             InitializeComponent();
             parentMain = main;
-            this.Left = main.Left; this.Top = main.Top;
-        }
-        private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
-            {
-                // Cho phép kéo Astra học bài đi quanh màn hình
-                this.DragMove();
-            }
+            this.Left = main.Left;
+            this.Top = main.Top;
         }
 
-        // THÊM: Click đúp để mở Checklist cho nhanh (Khỏi phải chuột phải)
-        private void Window_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            MenuChecklist_Click(null!, null!);
+            if (e.ChangedButton == MouseButton.Left) this.DragMove();
         }
 
-        // Sửa từ private thành public
+        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => MenuChecklist_Click(null, null);
+
         public void MenuChecklist_Click(object? sender, RoutedEventArgs? e)
         {
             if (checklist == null || !checklist.IsLoaded)
             {
                 checklist = new PomodoroChecklistWindow();
-                checklist.Show();
             }
             checklist.Show();
             checklist.Activate();
@@ -50,22 +42,21 @@ namespace AstraCosmeris_
 
         private void MenuExit_Click(object sender, RoutedEventArgs e)
         {
-            forceClose = true; // Cấp phép đóng cửa sổ này
-            parentMain.isFocusMode = false; // Mở khóa mõm
-            parentMain.isBigChatOpen = false; // Reset phòng hờ lỗi kẹt double click
-            parentMain.Show(); // Hiện lại Astra gốc
+            forceClose = true;
+            parentMain.isFocusMode = false;
+            parentMain.isBigChatOpen = false;
+            parentMain.Show();
 
-            if (checklist != null) checklist.Close();
+            checklist?.Close();
 
             foreach (Window w in System.Windows.Application.Current.Windows)
             {
                 if (w is TomatoTimerWindow t)
                 {
-                    t.forceClose = true; // Cấp phép đóng đồng hồ
+                    t.forceClose = true;
                     t.Close();
                 }
             }
-
             this.Close();
         }
     }

@@ -1,11 +1,10 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 
 namespace AstraCosmeris_
 {
     public partial class ExitConfirmWindow : Window
     {
-        private MainWindow parentMain;
+        private MainWindow? parentMain;
 
         public ExitConfirmWindow()
         {
@@ -27,14 +26,14 @@ namespace AstraCosmeris_
         {
             if (parentMain != null)
             {
-                parentMain.forceClose = true; // Cấp thẻ bài miễn tử (cho phép tắt thật)
-                parentMain.Close(); // Ra lệnh cho não bộ tự sát (lúc này OnClosing sẽ cho qua)
+                parentMain.forceClose = true;
+                parentMain.Close();
             }
             else
             {
-                System.Windows.Application.Current.Shutdown(); // Đề phòng lỗi null
+                System.Windows.Application.Current.Shutdown();
             }
-            this.Close(); // Đóng chính cái bảng xác nhận này lại
+            this.Close();
         }
     }
 }

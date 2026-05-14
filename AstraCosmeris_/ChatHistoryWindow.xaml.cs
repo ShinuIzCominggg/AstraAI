@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Threading.Tasks;
 
 namespace AstraCosmeris_
 {
@@ -16,9 +15,7 @@ namespace AstraCosmeris_
             parentPet = parent;
 
             if (MemoryManager.Data != null)
-            {
                 ChatList.ItemsSource = MemoryManager.Data.History;
-            }
 
             this.Loaded += (s, e) => ChatScroll.ScrollToEnd();
         }
@@ -34,10 +31,7 @@ namespace AstraCosmeris_
             this.Close();
         }
 
-        private async void BtnSend_Click(object sender, RoutedEventArgs e)
-        {
-            await SendMessage();
-        }
+        private async void BtnSend_Click(object sender, RoutedEventArgs e) => await SendMessage();
 
         private async void InputBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {

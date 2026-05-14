@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Diagnostics;
 
 namespace AstraCosmeris_
 {
@@ -11,7 +12,6 @@ namespace AstraCosmeris_
     {
         private MainWindow parentPet;
         private SpeechBubble? thinkingBubble;
-        private DashboardWindow? dashboard;
 
         public ChatInputWindow(MainWindow parent)
         {
@@ -27,16 +27,10 @@ namespace AstraCosmeris_
 
         private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                this.DragMove();
-            }
+            if (e.ChangedButton == MouseButton.Left) this.DragMove();
         }
 
-        private async void BtnSend_Click(object sender, RoutedEventArgs e)
-        {
-            await SendMessage();
-        }
+        private async void BtnSend_Click(object sender, RoutedEventArgs e) => await SendMessage();
 
         private async void InputBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
@@ -60,12 +54,12 @@ namespace AstraCosmeris_
             string lowerMsg = userText.ToLower();
             if (lowerMsg.Contains("tên tớ là") || lowerMsg.Contains("my name is"))
             {
-                string name = userText.Substring(userText.ToLower().IndexOf("là") + 2).Trim();
+                string name = userText.Substring(lowerMsg.IndexOf("là") + 2).Trim();
                 MemoryManager.AddFact("User Name", name);
             }
             else if (lowerMsg.Contains("tớ thích") || lowerMsg.Contains("i like"))
             {
-                string like = userText.Substring(userText.ToLower().IndexOf("thích") + 5).Trim();
+                string like = userText.Substring(lowerMsg.IndexOf("thích") + 5).Trim();
                 MemoryManager.AddFact("Likes", like);
             }
 
@@ -85,8 +79,7 @@ namespace AstraCosmeris_
             thinkingBubble.CloseBubble(keepState: true);
 
             parentPet.ChangeState(PetState.Happy);
-            SpeechBubble replyBubble = new SpeechBubble(reply, parentPet, 10000);
-            replyBubble.Show();
+            new SpeechBubble(reply, parentPet, 10000).Show();
         }
 
         // --- HỆ THỐNG NHẬN DIỆN LỆNH WINDOWS ---
@@ -96,81 +89,74 @@ namespace AstraCosmeris_
 
             if (lowerMsg.Contains("mở edge") || (lowerMsg.Contains("open") && lowerMsg.Contains("edge")))
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("msedge") { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo("msedge") { UseShellExecute = true });
                 ShowActionBubble("🌐 Đang mở Edge cho cậu lướt web nè~");
                 return true;
             }
 
             if (lowerMsg.Contains("mở word") || (lowerMsg.Contains("open") && lowerMsg.Contains("word")))
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("winword") { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo("winword") { UseShellExecute = true });
                 ShowActionBubble("📄 Đã mở Word! Chúc cậu làm việc vui vẻ nha");
                 return true;
             }
 
             if (lowerMsg.Contains("mở notepad") || lowerMsg.Contains("open notepad"))
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("notepad") { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo("notepad") { UseShellExecute = true });
                 ShowActionBubble("📓 Notepad lên sóng!");
                 return true;
             }
 
-            if (lowerMsg == "quit" || lowerMsg == "bye" || lowerMsg == "exit" || lowerMsg.Contains("cút") || lowerMsg == "tắt")
+            if (lowerMsg is "quit" or "bye" or "exit" || lowerMsg.Contains("cút") || lowerMsg == "tắt")
             {
                 ShowActionBubble("👋 Cậu định đi đâu đó...");
-                System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => parentPet.Close()));
+                Task.Delay(1500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => parentPet.Close()));
                 return true;
             }
 
-            if (lowerMsg == "restart" || lowerMsg.Contains("khởi động lại"))
+            if (lowerMsg is "restart" || lowerMsg.Contains("khởi động lại"))
             {
                 ShowActionBubble("🔄 Tớ sẽ trở lại ngay~");
-                System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => {
-                    System.Diagnostics.Process.Start(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "");
+                Task.Delay(1500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                    Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? "");
                     System.Windows.Application.Current.Shutdown();
                 }));
                 return true;
             }
 
-            if (lowerMsg == "calendar" || lowerMsg.Contains("mở lịch") || lowerMsg.Contains("open calendar"))
+            if (lowerMsg is "calendar" || lowerMsg.Contains("mở lịch") || lowerMsg.Contains("open calendar"))
             {
                 ShowActionBubble("🗓️ Lịch của cậu đây");
-                parentPet.OpenDashboard(); // Gọi sang não mẹ, cấm tự đẻ Dashboard riêng
+                parentPet.OpenDashboard();
                 return true;
             }
 
-            if (lowerMsg == "big chat" || lowerMsg.Contains("mở cửa sổ to") || lowerMsg.Contains("mở hộp thoại"))
+            if (lowerMsg is "big chat" || lowerMsg.Contains("mở cửa sổ to") || lowerMsg.Contains("mở hộp thoại"))
             {
                 if (!parentPet.isBigChatOpen)
                 {
                     parentPet.isBigChatOpen = true;
                     var bigChat = new ChatHistoryWindow(parentPet);
-
                     bigChat.Closed += (s, args) => {
                         parentPet.isBigChatOpen = false;
                         parentPet.ChangeState(PetState.Idle);
                     };
                     bigChat.Show();
                 }
-
                 this.Close();
                 return true;
             }
 
-            if(lowerMsg == "guide" || lowerMsg.Contains("hướng dẫn") || lowerMsg.Contains("help"))
+            if (lowerMsg is "guide" || lowerMsg.Contains("hướng dẫn") || lowerMsg.Contains("help"))
             {
-                string guidePath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "assets", "index.html");
-
-                if (System.IO.File.Exists(guidePath))
+                string guidePath = Path.Combine(AppContext.BaseDirectory, "assets", "index.html");
+                if (File.Exists(guidePath))
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(guidePath) { UseShellExecute = true });
+                    Process.Start(new ProcessStartInfo(guidePath) { UseShellExecute = true });
                     ShowActionBubble("📖 Tớ mở trang hướng dẫn cho cậu rồi nè~");
                 }
-                else
-                {
-                    ShowActionBubble("❌ Ụa, tớ không tìm thấy file hướng dẫn ở đâu cả!");
-                }
-
+                else ShowActionBubble("❌ Ụa, tớ không tìm thấy file hướng dẫn ở đâu cả!");
                 return true;
             }
             return false;
@@ -179,8 +165,7 @@ namespace AstraCosmeris_
         private void ShowActionBubble(string text)
         {
             parentPet.ChangeState(PetState.Happy);
-            SpeechBubble bubble = new SpeechBubble(text, parentPet, 3000);
-            bubble.Show();
+            new SpeechBubble(text, parentPet, 3000).Show();
         }
     }
 }
