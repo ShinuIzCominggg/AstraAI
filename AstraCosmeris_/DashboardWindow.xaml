@@ -108,9 +108,9 @@
                             </Style>
                         </StackPanel.Resources>
 
-                        <Button Content="calendar" Click="BtnCalendar_Click"/>
-                        <Button Content="notes" Click="BtnNotes_Click"/>
-                        <Button Content="tasks" Click="BtnTasks_Click"/>
+                        <Button Content="Calendar" Click="BtnCalendar_Click"/>
+                        <Button Content="Notes" Click="BtnNotes_Click"/>
+                        <Button Content="Tasks" Click="BtnTasks_Click"/>
                     </StackPanel>
 
                     <Image x:Name="AstraImage" Grid.Row="1" 
