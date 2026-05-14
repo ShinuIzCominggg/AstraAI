@@ -69,7 +69,7 @@ namespace AstraCosmeris_
                 TriggerFlashbang();
                 isWorking = !isWorking;
                 currentSeconds = isWorking ? workSeconds : breakSeconds;
-                TxtStatus.Text = isWorking ? "LÀM VIỆC" : "NGHỈ NGƠI";
+                TxtStatus.Text = isWorking ? "làm việc" : "nghỉ ngơi";
                 TxtStatus.Foreground = isWorking ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.LightGreen;
             }
         }
@@ -130,7 +130,7 @@ namespace AstraCosmeris_
                 if (e.ClickCount == 2 && isWorking)
                 {
                     isPaused = !isPaused;
-                    TxtStatus.Text = isPaused ? "TẠM DỪNG" : "LÀM VIỆC";
+                    TxtStatus.Text = isPaused ? "tạm dừng" : "làm việc";
                 }
                 else if (e.ClickCount != 2)
                 {

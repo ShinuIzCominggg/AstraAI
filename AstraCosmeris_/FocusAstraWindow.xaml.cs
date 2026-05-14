@@ -9,6 +9,11 @@ namespace AstraCosmeris_
         public PomodoroChecklistWindow? checklist;
         public bool forceClose = false;
 
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            Left = SystemParameters.WorkArea.Width - Width;
+            Top = (SystemParameters.WorkArea.Height - Height) / 2;
+        }
         public FocusAstraWindow(MainWindow main)
         {
             InitializeComponent();

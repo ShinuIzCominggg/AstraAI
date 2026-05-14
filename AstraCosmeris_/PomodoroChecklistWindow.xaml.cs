@@ -109,5 +109,6 @@ namespace AstraCosmeris_
         }
 
         private void BtnClose_Click(object sender, RoutedEventArgs e) => this.Hide();
+
     }
 }
