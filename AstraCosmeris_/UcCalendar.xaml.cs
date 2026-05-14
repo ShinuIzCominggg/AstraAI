@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,9 +26,7 @@ namespace AstraCosmeris_
 
             DateTime firstDayOfMonth = new DateTime(displayDate.Year, displayDate.Month, 1);
             int daysInMonth = DateTime.DaysInMonth(displayDate.Year, displayDate.Month);
-
-            int startDayOfWeek = (int)firstDayOfMonth.DayOfWeek;
-            int offset = (startDayOfWeek == 0 ? 7 : startDayOfWeek) - 1;
+            int offset = ((int)firstDayOfMonth.DayOfWeek == 0 ? 7 : (int)firstDayOfMonth.DayOfWeek) - 1;
 
             for (int i = 0; i < offset; i++) DaysGrid.Children.Add(CreateDayCell(""));
 
@@ -36,8 +35,6 @@ namespace AstraCosmeris_
                 bool isToday = (displayDate.Year == DateTime.Now.Year && displayDate.Month == DateTime.Now.Month && i == DateTime.Now.Day);
                 DaysGrid.Children.Add(CreateDayCell(i.ToString(), isToday));
             }
-            int remainingCells = 42 - (offset + daysInMonth);
-            for (int i = 0; i < remainingCells; i++) DaysGrid.Children.Add(CreateDayCell(""));
         }
 
         private Border CreateDayCell(string dayText, bool isToday = false)
@@ -50,24 +47,38 @@ namespace AstraCosmeris_
                 Cursor = string.IsNullOrEmpty(dayText) ? System.Windows.Input.Cursors.Arrow : System.Windows.Input.Cursors.Hand
             };
 
-            border.Child = new TextBlock
-            {
-                Text = dayText,
-                Margin = new Thickness(5),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                VerticalAlignment = System.Windows.VerticalAlignment.Top,
-                Foreground = System.Windows.Media.Brushes.Black,
-                FontSize = 26,
-                FontWeight = System.Windows.FontWeights.Bold
-            };
+            if (string.IsNullOrEmpty(dayText)) return border;
 
-            if (!string.IsNullOrEmpty(dayText))
-            {
-                border.MouseLeftButtonDown += (s, e) => {
-                    e.Handled = true;
-                    new TaskEntryWindow(new DateTime(displayDate.Year, displayDate.Month, int.Parse(dayText))).ShowDialog();
-                };
-            }
+            // Kiểm tra xem có Task hay Event trong ngày này không để vẽ chấm màu
+            string dateKey = new DateTime(displayDate.Year, displayDate.Month, int.Parse(dayText)).ToString("yyyy-MM-dd");
+            bool hasTask = DataManager.Data.Tasks.ContainsKey(dateKey) && !string.IsNullOrWhiteSpace(DataManager.Data.Tasks[dateKey]);
+            bool hasEvent = DataManager.Data.Events.Any(e => e.Date.ToString("yyyy-MM-dd") == dateKey);
+
+            StackPanel dotPanel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(5) };
+            if (hasTask) dotPanel.Children.Add(new System.Windows.Shapes.Ellipse { Width = 8, Height = 8, Fill = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FF0000")), Margin = new Thickness(2) });
+            if (hasEvent) dotPanel.Children.Add(new System.Windows.Shapes.Ellipse { Width = 8, Height = 8, Fill = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFD700")), Margin = new Thickness(2) });
+
+            Grid cellGrid = new Grid();
+            cellGrid.Children.Add(new TextBlock { Text = dayText, Margin = new Thickness(5), HorizontalAlignment = System.Windows.HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Foreground = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#000000")), FontSize = 26, FontWeight = FontWeights.Bold });
+            cellGrid.Children.Add(dotPanel);
+            border.Child = cellGrid;
+
+            // Xử lý Click đẻ ra Menu
+            border.MouseLeftButtonDown += (s, e) => {
+                e.Handled = true;
+                DateTime clickedDate = new DateTime(displayDate.Year, displayDate.Month, int.Parse(dayText));
+
+                System.Windows.Controls.ContextMenu menu = new System.Windows.Controls.ContextMenu();
+                System.Windows.Controls.MenuItem taskItem = new System.Windows.Controls.MenuItem { Header = "📝 Thêm Lịch trình (Task)" };
+                taskItem.Click += (sender, args) => { new TaskEntryWindow(clickedDate).ShowDialog(); RenderCalendar(); };
+
+                System.Windows.Controls.MenuItem eventItem = new System.Windows.Controls.MenuItem { Header = "🎉 Thêm Sự kiện (Event)" };
+                eventItem.Click += (sender, args) => { new EventEntryWindow(clickedDate).ShowDialog(); RenderCalendar(); };
+
+                menu.Items.Add(taskItem);
+                menu.Items.Add(eventItem);
+                menu.IsOpen = true;
+            };
 
             return border;
         }

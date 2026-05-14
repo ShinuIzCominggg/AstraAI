@@ -56,7 +56,7 @@ namespace AstraCosmeris_
         public MainWindow()
         {
             InitializeComponent();
-            MemoryManager.LoadMemory();
+            DataManager.LoadData();
 
             SetupTimers();
             SetupTrayIcon();

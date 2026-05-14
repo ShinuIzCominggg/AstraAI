@@ -14,8 +14,8 @@ namespace AstraCosmeris_
             InitializeComponent();
             parentPet = parent;
 
-            if (MemoryManager.Data != null)
-                ChatList.ItemsSource = MemoryManager.Data.History;
+            if (DataManager.Data != null)
+                ChatList.ItemsSource = DataManager.Data.History;
 
             this.Loaded += (s, e) => ChatScroll.ScrollToEnd();
         }
@@ -49,7 +49,7 @@ namespace AstraCosmeris_
 
             InputBox.Text = "";
 
-            MemoryManager.Data.History.Add(new Dictionary<string, string> { { "role", "user" }, { "content", userText } });
+            DataManager.Data.History.Add(new Dictionary<string, string> { { "role", "user" }, { "content", userText } });
             ChatScroll.ScrollToEnd();
 
             parentPet.ChangeState(PetState.Thinking);
@@ -57,8 +57,8 @@ namespace AstraCosmeris_
             // --- GỌI BỘ NÃO TRUNG TÂM ---
             string reply = await AstraBrain.ThinkAndReply();
 
-            MemoryManager.Data.History.Add(new Dictionary<string, string> { { "role", "assistant" }, { "content", reply } });
-            MemoryManager.SaveMemory();
+            DataManager.Data.History.Add(new Dictionary<string, string> { { "role", "assistant" }, { "content", reply } });
+            DataManager.SaveData();
 
             ChatScroll.ScrollToEnd();
             parentPet.ChangeState(PetState.Happy);

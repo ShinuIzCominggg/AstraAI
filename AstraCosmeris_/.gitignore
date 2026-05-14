@@ -488,7 +488,7 @@ obj/
 .vs/
 
 # BỎ QUA CÁC FILE CHỨA DATA CÁ NHÂN VÀ API KEY CỦA M
-# (Tên file JSON do m đặt bên MemoryManager, t ví dụ vài cái)
+# (Tên file JSON do m đặt bên DataManager, t ví dụ vài cái)
 memory.json
 tasks.json
 notes_v2.json

@@ -23,11 +23,11 @@ namespace AstraCosmeris_
 
         private void BtnTrial_Click(object sender, RoutedEventArgs e)
         {
-            MemoryManager.Data.ApiKey = "";
-            MemoryManager.Data.ApiProvider = "Groq";
-            MemoryManager.Data.ApiModel = "llama-3.1-8b-instant";
+            DataManager.Data.ApiKey = "";
+            DataManager.Data.ApiProvider = "Groq";
+            DataManager.Data.ApiModel = "llama-3.1-8b-instant";
 
-            MemoryManager.SaveMemory();
+            DataManager.SaveData();
             System.Windows.MessageBox.Show("Đã kích hoạt chế độ Dùng thử! Hãy trải nghiệm Astra nhé!", "Thành công", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             this.Close();
         }
@@ -41,15 +41,15 @@ namespace AstraCosmeris_
                 return;
             }
 
-            MemoryManager.Data.ApiKey = key;
-            MemoryManager.Data.ApiProvider = CboProvider.SelectedIndex switch
+            DataManager.Data.ApiKey = key;
+            DataManager.Data.ApiProvider = CboProvider.SelectedIndex switch
             {
                 1 => "OpenAI",
                 2 => "Gemini",
                 _ => "Groq"
             };
 
-            MemoryManager.SaveMemory();
+            DataManager.SaveData();
             System.Windows.MessageBox.Show("Kết nối thành công! Astra đã sẵn sàng!", "Welcome", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             this.Close();
         }

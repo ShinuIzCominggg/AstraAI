@@ -23,7 +23,7 @@ namespace AstraCosmeris_
         // --- ĐỔ DỮ LIỆU LÊN UI ---
         private void LoadCurrentSettings()
         {
-            var data = MemoryManager.Data;
+            var data = DataManager.Data;
             TxtApiKey.Text = data.ApiKey;
             TxtPrompt.Text = data.SystemPrompt;
             ListFacts.ItemsSource = data.Facts;
@@ -78,7 +78,7 @@ namespace AstraCosmeris_
         // --- LƯU DỮ LIỆU ---
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            var data = MemoryManager.Data;
+            var data = DataManager.Data;
             data.ApiKey = TxtApiKey.Text.Trim();
             data.SystemPrompt = TxtPrompt.Text.Trim();
 
@@ -95,7 +95,7 @@ namespace AstraCosmeris_
                 _ => "Groq"
             };
 
-            MemoryManager.SaveMemory();
+            DataManager.SaveData();
             System.Windows.MessageBox.Show("Đã lưu cấu hình của Astra thành công!", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -115,8 +115,8 @@ namespace AstraCosmeris_
         {
             if (System.Windows.MessageBox.Show("Cậu có chắc muốn xóa sạch lịch sử trò chuyện?", "Cảnh báo", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
-                MemoryManager.Data.History.Clear();
-                MemoryManager.SaveMemory();
+                DataManager.Data.History.Clear();
+                DataManager.SaveData();
                 System.Windows.MessageBox.Show("Đã xóa lịch sử chat!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
@@ -125,8 +125,8 @@ namespace AstraCosmeris_
         {
             if (System.Windows.MessageBox.Show("CẢNH BÁO: Astra sẽ quên hết mọi thứ về cậu. Cậu có chắc chắn không?", "KHÔI PHỤC CÀI ĐẶT GỐC", MessageBoxButton.YesNo, MessageBoxImage.Error) == MessageBoxResult.Yes)
             {
-                MemoryManager.Data = new MemoryData();
-                MemoryManager.SaveMemory();
+                DataManager.Data = new MemoryData();
+                DataManager.SaveData();
                 System.Windows.MessageBox.Show("Đã khôi phục cài đặt gốc.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 this.Close();
             }

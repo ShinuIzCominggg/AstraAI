@@ -55,16 +55,16 @@ namespace AstraCosmeris_
             if (lowerMsg.Contains("tên tớ là") || lowerMsg.Contains("my name is"))
             {
                 string name = userText.Substring(lowerMsg.IndexOf("là") + 2).Trim();
-                MemoryManager.AddFact("User Name", name);
+                DataManager.AddFact("User Name", name);
             }
             else if (lowerMsg.Contains("tớ thích") || lowerMsg.Contains("i like"))
             {
                 string like = userText.Substring(lowerMsg.IndexOf("thích") + 5).Trim();
-                MemoryManager.AddFact("Likes", like);
+                DataManager.AddFact("Likes", like);
             }
 
-            MemoryManager.Data.History.Add(new Dictionary<string, string> { { "role", "user" }, { "content", userText } });
-            MemoryManager.SaveMemory();
+            DataManager.Data.History.Add(new Dictionary<string, string> { { "role", "user" }, { "content", userText } });
+            DataManager.SaveData();
 
             parentPet.ChangeState(PetState.Thinking);
             thinkingBubble = new SpeechBubble("💭 Hmm... để tớ nghĩ xíu~", parentPet, 99999);
@@ -73,8 +73,8 @@ namespace AstraCosmeris_
             // --- GỌI BỘ NÃO TRUNG TÂM ---
             string reply = await AstraBrain.ThinkAndReply();
 
-            MemoryManager.Data.History.Add(new Dictionary<string, string> { { "role", "assistant" }, { "content", reply } });
-            MemoryManager.SaveMemory();
+            DataManager.Data.History.Add(new Dictionary<string, string> { { "role", "assistant" }, { "content", reply } });
+            DataManager.SaveData();
 
             thinkingBubble.CloseBubble(keepState: true);
 

@@ -15,7 +15,7 @@ namespace AstraCosmeris_
 
         public static async Task<string> ThinkAndReply()
         {
-            var data = MemoryManager.Data;
+            var data = DataManager.Data;
             string apiKey = data.ApiKey;
             string provider = data.ApiProvider;
 
