@@ -208,6 +208,7 @@ namespace AstraCosmeris_
             }
             else
             {
+                dashboard.Show();
                 dashboard.Activate();
                 if (dashboard.WindowState == WindowState.Minimized) dashboard.WindowState = WindowState.Normal;
             }
