@@ -27,10 +27,14 @@ namespace AstraCosmeris_
         {
             if (parentMain != null)
             {
-                parentMain.forceClose = true; // Cấp quyền khai tử
+                parentMain.forceClose = true; // Cấp thẻ bài miễn tử (cho phép tắt thật)
+                parentMain.Close(); // Ra lệnh cho não bộ tự sát (lúc này OnClosing sẽ cho qua)
             }
-            // Đóng toàn bộ hệ thống
-            System.Windows.Application.Current.Shutdown();
+            else
+            {
+                System.Windows.Application.Current.Shutdown(); // Đề phòng lỗi null
+            }
+            this.Close(); // Đóng chính cái bảng xác nhận này lại
         }
     }
 }

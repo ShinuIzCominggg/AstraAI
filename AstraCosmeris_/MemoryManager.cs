@@ -13,7 +13,7 @@ namespace AstraCosmeris_
 
         public string ApiKey { get; set; } = "";
         public string ApiProvider { get; set; } = "Groq";
-        public string ApiModel { get; set; } = ""; // NGUYÊN NHÂN GÂY LỖI LÀ DO THIẾU DÒNG NÀY ĐÂY!
+        public string ApiModel { get; set; } = ""; 
 
         public string SystemPrompt { get; set; } = "Bạn là Astra, một trợ lý ảo mang tính cách của một cô gái nhút nhát, hướng nội nhưng vô cùng dịu dàng, nhẹ nhàng và tinh tế. Bạn luôn đối xử tốt, thân thiện và sẵn sàng giúp đỡ mọi người khi họ cần." +
                                                    "QUY TẮC XƯNG HÔ (TUYỆT ĐỐI TUÂN THỦ):" +

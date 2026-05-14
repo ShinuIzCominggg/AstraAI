@@ -279,12 +279,8 @@ namespace AstraCosmeris_
 
             contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             contextMenu.Items.Add("Quit", null, (s, e) => {
-                if (trayIcon != null)
-                {
-                    trayIcon.Visible = false;
-                    trayIcon.Dispose();
-                }
-                System.Windows.Application.Current.Shutdown();
+                // SỬA Ở ĐÂY: Gọi lệnh tắt MainWindow để nó tự nhảy vào OnClosing
+                this.Close();
             });
 
             trayIcon.ContextMenuStrip = contextMenu;
@@ -446,14 +442,28 @@ namespace AstraCosmeris_
             {
                 e.Cancel = true; // Chặn đứng lệnh tắt ngay lập tức
 
-                // Chặn việc spam Alt+F4 đẻ ra chục cái bảng chửi
-                if (System.Windows.Application.Current.Windows.OfType<ExitConfirmWindow>().Any()) return;
+                // Nếu bảng chửi đang mở rồi thì lôi cổ nó lên trên cùng, cấm đẻ thêm!
+                var existingExitWin = System.Windows.Application.Current.Windows.OfType<ExitConfirmWindow>().FirstOrDefault();
+                if (existingExitWin != null)
+                {
+                    existingExitWin.Activate();
+                    return;
+                }
 
-                // Mở cửa sổ chửi thẳng mặt (Dùng Show() thay vì ShowDialog() cho an toàn)
+                // Chưa mở thì đẻ ra
                 ExitConfirmWindow exitWin = new ExitConfirmWindow(this);
                 exitWin.Show();
             }
-            base.OnClosing(e);
+            else
+            {
+                // Nếu ĐƯỢC CẤP PHÉP TẮT THẬT (forceClose = true) thì dọn dẹp khay hệ thống rồi mới nhắm mắt
+                if (trayIcon != null)
+                {
+                    trayIcon.Visible = false;
+                    trayIcon.Dispose();
+                }
+            }
+            // Không cần base.OnClosing(e) ở dưới này nữa để tránh lỗi
         }
     }
 }

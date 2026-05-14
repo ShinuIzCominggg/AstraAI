@@ -117,8 +117,8 @@ namespace AstraCosmeris_
 
             if (lowerMsg == "quit" || lowerMsg == "bye" || lowerMsg == "exit" || lowerMsg.Contains("cút") || lowerMsg == "tắt")
             {
-                ShowActionBubble("👋 Tạm biệt cậu nha");
-                System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => System.Windows.Application.Current.Shutdown()));
+                ShowActionBubble("👋 Cậu định đi đâu đó...");
+                System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => parentPet.Close()));
                 return true;
             }
 
