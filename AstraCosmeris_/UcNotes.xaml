@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="AstraCosmeris_.UcNotes"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#FDF8E2" IsVisibleChanged="UserControl_IsVisibleChanged">
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,25">
+            <TextBlock Text="📝 Notes Overview" FontSize="36" FontWeight="Bold" Foreground="#2F3273" VerticalAlignment="Center"/>
+            <Button Content="+" FontSize="35" FontWeight="Bold" Foreground="White" Background="#FF6B6B" 
+                    HorizontalAlignment="Right" Width="50" Height="50" Cursor="Hand" Click="BtnAddNote_Click" ToolTip="Tạo Note Mới">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="25"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </Grid>
+
+        <ScrollViewer x:Name="NotesScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="Transparent" PanningMode="VerticalOnly">
+            <WrapPanel x:Name="NotesContainer" Orientation="Horizontal"/>
+        </ScrollViewer>
+
+        <Grid x:Name="DropZoneOverlay" Grid.Row="1" Visibility="Collapsed" Background="#CCFDF8E2">
+            <Rectangle Stroke="#2F3273" StrokeThickness="4" StrokeDashArray="6 6" RadiusX="15" RadiusY="15" Margin="5"/>
+            <TextBlock Text="Kéo thả vào đây để dính 📌" FontSize="26" FontWeight="Bold" Foreground="#2F3273" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7"/>
+        </Grid>
+    </Grid>
+</UserControl>
