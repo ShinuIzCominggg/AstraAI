@@ -29,32 +29,42 @@ namespace AstraCosmeris_
         {
             string[] lines = TxtTasks.Text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             var processedLines = new List<string>();
-            var relativeRegex = new Regex(@"^\+?(\d+)[pP]\s+(.+)$");
-            var absoluteRegex = new Regex(@"^(\d{1,2}:\d{2})\s+(.+)$");
+
+            // HOT FIX: Regex bọc thép, bắt mọi kiểu gõ (vd: +5, +5p, 5m, 8:30, 08h30)
+            var relativeRegex = new Regex(@"^\+?\s*(\d+)\s*[pPmM]*\s+(.+)$");
+            var absoluteRegex = new Regex(@"^(\d{1,2})[:hH](\d{2})\s+(.+)$");
             DateTime now = DateTime.Now;
 
             foreach (string line in lines)
             {
                 string trimmed = line.Trim();
+
+                // Đã đúng chuẩn [HH:mm] rồi thì tha cho nó
+                if (Regex.IsMatch(trimmed, @"^\[\d{2}:\d{2}\]"))
+                {
+                    processedLines.Add(trimmed);
+                    continue;
+                }
+
                 var relMatch = relativeRegex.Match(trimmed);
                 if (relMatch.Success && int.TryParse(relMatch.Groups[1].Value, out int minutes))
                 {
                     processedLines.Add($"[{now.AddMinutes(minutes):HH:mm}] {relMatch.Groups[2].Value}");
                     continue;
                 }
+
                 var absMatch = absoluteRegex.Match(trimmed);
                 if (absMatch.Success)
                 {
-                    string time = absMatch.Groups[1].Value.PadLeft(5, '0');
-                    processedLines.Add($"[{time}] {absMatch.Groups[2].Value}");
+                    string h = absMatch.Groups[1].Value.PadLeft(2, '0');
+                    string m = absMatch.Groups[2].Value;
+                    processedLines.Add($"[{h}:{m}] {absMatch.Groups[3].Value}");
                     continue;
                 }
                 processedLines.Add(trimmed);
             }
 
             TxtTasks.Text = string.Join(Environment.NewLine, processedLines);
-
-            // LƯU VÀO DATABASE TỔNG
             DataManager.Data.Tasks[currentDateKey] = TxtTasks.Text;
             DataManager.SaveData();
 

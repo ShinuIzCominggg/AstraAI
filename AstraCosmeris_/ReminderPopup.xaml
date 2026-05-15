@@ -1,15 +1,18 @@
 ﻿<Window x:Class="AstraCosmeris_.ReminderPopup"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Reminder" Height="90" Width="250"
+        Title="Reminder" Height="100" Width="280"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False">
-    <Border Background="#FFFFEEEE" CornerRadius="15" BorderBrush="#FF4444" BorderThickness="2" Margin="5">
+
+    <Border Background="#111111" CornerRadius="10" BorderBrush="#FF0000" BorderThickness="4" Margin="5">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="10" Color="Red" Opacity="0.4" ShadowDepth="2"/>
+            <DropShadowEffect BlurRadius="15" Color="Red" Opacity="0.8" ShadowDepth="0"/>
         </Border.Effect>
-        <TextBlock x:Name="MessageText" Text="⏰ DẬY LÀM VIỆC ĐI!!!" 
-                   TextWrapping="Wrap" FontSize="14" FontWeight="Bold" Foreground="#880000"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>
+        <Grid>
+            <TextBlock x:Name="MessageText" Text="⏰ DẬY LÀM VIỆC ĐI!!!" 
+                       TextWrapping="Wrap" FontSize="16" FontWeight="Black" Foreground="#FF3333"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Margin="10"/>
+        </Grid>
     </Border>
 </Window>

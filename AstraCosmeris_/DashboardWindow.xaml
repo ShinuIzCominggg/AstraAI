@@ -115,7 +115,7 @@
 
                     <Image x:Name="AstraImage" Grid.Row="1" 
                            VerticalAlignment="Top" HorizontalAlignment="Left" 
-                           Margin="-22,125,0,0" Width="442" Stretch="Uniform" Height="450" Grid.RowSpan="2"/>
+                           Margin="-22,146,0,0" Width="442" Stretch="Uniform" Height="429" Grid.RowSpan="2"/>
 
                     <Button Grid.Row="2" Width="126" Height="114" Margin="162,165,0,0" 
                             HorizontalAlignment="Left" VerticalAlignment="Top" 
