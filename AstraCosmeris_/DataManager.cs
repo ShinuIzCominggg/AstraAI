@@ -22,6 +22,7 @@ namespace AstraCosmeris_
         public int NotesCreated { get; set; } = 0;
         public int PomodorosCompleted { get; set; } = 0;
         public double ScreenTimeMinutes { get; set; } = 0;
+        public int TasksCompleted { get; set; } = 0;
     }
 
     public class AstraDatabase

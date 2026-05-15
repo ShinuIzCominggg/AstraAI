@@ -20,7 +20,7 @@
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="0,8,0,8" HorizontalAlignment="Stretch">
-                            <Grid>
+                            <Grid ContextMenuOpening="Grid_ContextMenuOpening">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="40"/>
@@ -39,6 +39,9 @@
                                                  FontSize="15" Foreground="{Binding TextColor}" 
                                                  Background="Transparent" BorderThickness="0" 
                                                  TextWrapping="Wrap" MinWidth="150"
+                                                 IsReadOnly="True" Cursor="Arrow"
+                                                 MouseDoubleClick="TaskTextBox_MouseDoubleClick"
+                                                 LostFocus="TaskTextBox_LostFocus"
                                                  Loaded="TaskTextBox_Loaded"/>
 
                                         <Border Height="1" Background="{Binding TextColor}" VerticalAlignment="Center" HorizontalAlignment="Stretch" IsHitTestVisible="False">
@@ -73,10 +76,7 @@
                                 </CheckBox>
 
                                 <Grid.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="❌ Gạch bỏ" Click="MenuCrossOut_Click" CommandParameter="{Binding}"/>
-                                        <MenuItem Header="➕ Tạo Task con" Click="MenuAddSubTask_Click" CommandParameter="{Binding}"/>
-                                    </ContextMenu>
+                                    <ContextMenu x:Name="TaskContextMenu"/>
                                 </Grid.ContextMenu>
                             </Grid>
                         </Border>
