@@ -11,9 +11,9 @@ namespace AstraCosmeris_
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Title { get; set; } = "";
         public DateTime Date { get; set; }
-        public string Type { get; set; } = "Khác"; // Sinh nhật, Kỉ niệm, Deadline, Hẹn hò...
+        public string Type { get; set; } = "Khác";
         public string Location { get; set; } = "";
-        public string Repeat { get; set; } = "Không lặp"; // Không lặp, Hàng tuần, Hàng tháng, Hàng năm
+        public string Repeat { get; set; } = "Không lặp";
     }
 
     public class DailyStat
@@ -25,25 +25,32 @@ namespace AstraCosmeris_
         public int TasksCompleted { get; set; } = 0;
     }
 
+    // THÊM MỚI: Cấu hình thông báo
+    public class NotificationConfig
+    {
+        public bool EnableSound { get; set; } = true;
+        public int DurationSeconds { get; set; } = 5;
+    }
+
     public class AstraDatabase
     {
-        // 1. Não bộ AI (Từ DataManager cũ)
         public ObservableCollection<Dictionary<string, string>> History { get; set; } = new();
         public Dictionary<string, string> Facts { get; set; } = new();
         public string ApiKey { get; set; } = "";
         public string ApiProvider { get; set; } = "Groq";
         public string ApiModel { get; set; } = "";
-        public string SystemPrompt { get; set; } =
-            "Bạn là Astra, một trợ lý ảo mang tính cách của một cô gái nhút nhát, hướng nội nhưng vô cùng dịu dàng, nhẹ nhàng và tinh tế. Bạn luôn đối xử tốt, thân thiện và sẵn sàng giúp đỡ mọi người khi họ cần..." +
-            "Nhiệm vụ của bạn là luôn giữ vững thiết lập tính cách này.";
 
-        // 2. Dữ liệu công việc & Sự kiện
+        // THÊM MỚI: Quản lý tính cách
+        public string SelectedPersona { get; set; } = "Dịu dàng";
+        public string SystemPrompt { get; set; } = "Bạn là Astra, một trợ lý ảo mang tính cách của một cô gái nhút nhát, hướng nội nhưng vô cùng dịu dàng...";
+
         public Dictionary<string, string> Tasks { get; set; } = new();
         public List<AstraEvent> Events { get; set; } = new();
-
-        // 3. Dữ liệu Thống kê & Tracking
         public Dictionary<string, DailyStat> Stats { get; set; } = new();
         public string LastOpenedDate { get; set; } = "";
+
+        // THÊM MỚI: Cấu hình
+        public NotificationConfig NotiConfig { get; set; } = new NotificationConfig();
     }
 
     public static class DataManager
@@ -76,7 +83,6 @@ namespace AstraCosmeris_
             SaveData();
         }
 
-        // Tracking nhanh cho thống kê
         public static void TrackDashboardOpen()
         {
             string today = DateTime.Now.ToString("yyyy-MM-dd");

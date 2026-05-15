@@ -33,7 +33,7 @@ namespace AstraCosmeris_
             {
                 System.Windows.Application.Current.Shutdown();
             }
-            this.Close();
+            System.Windows.Application.Current.Shutdown();
         }
     }
 }

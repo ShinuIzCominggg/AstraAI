@@ -52,13 +52,17 @@ namespace AstraCosmeris_
             InitializeComponent();
             DataManager.LoadData();
 
-            // XỬ LÝ CHUẨN BỊ CHO BÁO CÁO (Daily Report)
+            // XỬ LÝ CHUẨN BỊ CHO BÁO CÁO (Daily Report) VÀ LỜI CHÀO SỰ KIỆN
             string today = DateTime.Now.ToString("yyyy-MM-dd");
             if (DataManager.Data.LastOpenedDate != today)
             {
-                // Gọi hàm đẻ Report ở đây (Phase sau sẽ làm)
                 DataManager.Data.LastOpenedDate = today;
                 DataManager.SaveData();
+
+                // 1. GỌI LỜI CHÀO SỰ KIỆN BUỔI SÁNG
+                CheckMorningEvents();
+
+                // 2. GỌI REPORT (Phase tới mình sẽ đẻ cửa sổ Report ở đây)
             }
 
             SetupTimers();
@@ -67,6 +71,42 @@ namespace AstraCosmeris_
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) => UpdateFrame();
+
+        // ==========================================
+        // MA THUẬT 1: LỜI CHÀO SỰ KIỆN ĐẦU NGÀY
+        // ==========================================
+        private void CheckMorningEvents()
+        {
+            DateTime today = DateTime.Today;
+            var todayEvents = DataManager.Data.Events.Where(e => {
+                if (e.Date.Date == today) return true;
+                if (e.Date.Date > today) return false;
+
+                return e.Repeat switch
+                {
+                    "Hàng tuần" => e.Date.DayOfWeek == today.DayOfWeek,
+                    "Hàng tháng" => e.Date.Day == today.Day,
+                    "Hàng năm" => e.Date.Day == today.Day && e.Date.Month == today.Month,
+                    _ => false
+                };
+            }).ToList();
+
+            if (todayEvents.Count > 0)
+            {
+                string eventNames = string.Join(", ", todayEvents.Select(ev => ev.Title));
+
+                // Trì hoãn 2 giây cho app load xong UI rồi mới bắn Toast ra cho mượt
+                DispatcherTimer delayTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+                delayTimer.Tick += (s, e) => {
+                    delayTimer.Stop();
+                    new AstraNotificationWindow(
+                        "🎉 Chào buổi sáng!",
+                        $"Cậu đừng quên hôm nay chúng ta có:\n{eventNames} nhé!"
+                    ).Show();
+                };
+                delayTimer.Start();
+            }
+        }
 
         private void SetupTimers()
         {
@@ -92,7 +132,6 @@ namespace AstraCosmeris_
                     UpdateFrame();
                 }
 
-                // Thu thập thời gian sử dụng app (Tracking Screen Time)
                 string today = DateTime.Now.ToString("yyyy-MM-dd");
                 if (!DataManager.Data.Stats.ContainsKey(today)) DataManager.Data.Stats[today] = new DailyStat();
                 DataManager.Data.Stats[today].ScreenTimeMinutes += (166.0 / 60000.0);
@@ -156,9 +195,9 @@ namespace AstraCosmeris_
         public void OpenDashboard()
         {
             if (isFocusMode) { System.Windows.MessageBox.Show("Đang focus, không được lướt Dashboard!", "Astra"); return; }
-            DataManager.TrackDashboardOpen(); // Track Report
+            DataManager.TrackDashboardOpen();
             if (dashboard == null || !dashboard.IsLoaded) { dashboard = new DashboardWindow(); dashboard.Show(); }
-            else { dashboard.Show();  dashboard.Activate(); if (dashboard.WindowState == WindowState.Minimized) dashboard.WindowState = WindowState.Normal; }
+            else { dashboard.Activate(); if (dashboard.WindowState == WindowState.Minimized) dashboard.WindowState = WindowState.Normal; }
         }
 
         public void CloseAllChats() { chatWindow?.Close(); chatWindow = null; bigChatWindow?.Close(); bigChatWindow = null; isBigChatOpen = false; }
@@ -177,10 +216,9 @@ namespace AstraCosmeris_
         private void MenuDashboard_Click(object sender, RoutedEventArgs e) => OpenDashboard();
         private void MenuPomodoro_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) new PomodoroSetupWindow(this).Show(); dashboard?.Hide(); }
         private void MenuSettings_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) new SettingsWindow().Show(); }
-        private void MenuExit_Click(object sender, RoutedEventArgs e) => this.Close();
 
         // ==========================================
-        // HOT FIX: SỬA LỖI RADAR ĐỂ NÓ HOẠT ĐỘNG
+        // MA THUẬT 2: RADAR & THAO TÚNG TÂM LÝ BẠO LỰC
         // ==========================================
         private void TaskRadarTimer_Tick(object? sender, EventArgs e)
         {
@@ -191,34 +229,67 @@ namespace AstraCosmeris_
             if (DataManager.Data.Tasks.TryGetValue(todayKey, out string? todayTasks))
             {
                 string[] lines = todayTasks.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string line in lines)
+                for (int i = 0; i < lines.Length; i++)
                 {
-                    string trimmed = line.Trim();
+                    string trimmed = lines[i].Trim();
                     if (trimmed.StartsWith("[") && trimmed.Length >= 7 && trimmed[6] == ']')
                     {
                         string taskTime = trimmed.Substring(1, 5);
                         if (taskTime == currentMinute)
                         {
                             string taskContent = trimmed.Substring(7).Trim();
-                            TriggerReminder(taskContent);
+                            // Đẩy cả mảng dòng vào để lát nó còn biết sửa file nếu lùi 5 phút
+                            TriggerReminder(taskContent, todayKey, i, lines);
                             lastTriggeredMinute = currentMinute;
-                            break;
+                            return;
                         }
                     }
                 }
             }
         }
 
-        public void TriggerReminder(string task) => StartReminderStorm($"⚠️ {task}\nLÀM NGAY VÀ LUÔN!!!");
+        public void TriggerReminder(string task, string dateKey, int lineIndex, string[] allLines)
+        {
+            bool isHandled = false; // Cờ kiểm tra thái độ user
+
+            var notif = new AstraNotificationWindow(
+                title: "⏰ Tới giờ làm việc!",
+                message: $"Nhiệm vụ: {task}\nCậu định làm ngay hay muốn lùi lại?",
+                btn1Text: "✅ Làm ngay",
+                action1: () => {
+                    isHandled = true;
+                    // Chấp hành ngoan ngoãn -> Tha cho
+                },
+                btn2Text: "⏳ Lùi 5 phút",
+                action2: () => {
+                    isHandled = true;
+                    // M lười à? Ok sửa lại Database cộng thêm 5 phút!
+                    DateTime newTime = DateTime.Now.AddMinutes(5);
+                    allLines[lineIndex] = $"[{newTime:HH:mm}] {task}";
+                    DataManager.Data.Tasks[dateKey] = string.Join(Environment.NewLine, allLines);
+                    DataManager.SaveData();
+                }
+            );
+
+            // Bắt sự kiện khi Toast đóng lại
+            notif.Closed += (s, e) => {
+                // Nếu Toast đóng mà cờ vẫn false (nghĩa là Toast tự tắt do hết thời gian, user lờ đi)
+                if (!isHandled)
+                {
+                    StartReminderStorm($"⚠️ {task}\nĐÃ BẢO LÀ LÀM NGAY ĐI CƠ MÀ!!!");
+                }
+            };
+
+            notif.Show();
+        }
 
         // ==========================================
-        // TÍNH NĂNG ĐIÊN RỒ: POPUPS VÔ HẠN & NÚT OK NHẢY
+        // KHU VỰC GAME BẠO LỰC (GIỮ NGUYÊN)
         // ==========================================
         private void StartReminderStorm(string text)
         {
             if (spamTimer != null && spamTimer.IsEnabled) return;
 
-            // 1. Tạo Nút Stop Thần Thánh
             stopButtonWindow = new Window
             {
                 WindowStyle = WindowStyle.None,
@@ -235,7 +306,7 @@ namespace AstraCosmeris_
                 Content = "🛑 TỚ BIẾT RỒI!",
                 Background = System.Windows.Media.Brushes.Red,
                 Foreground = System.Windows.Media.Brushes.White,
-                FontWeight = System.Windows.FontWeights.Bold,
+                FontWeight = FontWeights.Bold,
                 FontSize = 16,
                 Cursor = System.Windows.Input.Cursors.Hand
             };
@@ -243,7 +314,6 @@ namespace AstraCosmeris_
             btnStop.Click += (s, e) => StopReminderStorm();
             stopButtonWindow.Content = btnStop;
 
-            // 2. Timer Nảy nút (Cứ 3.5s nhảy 1 phát)
             DispatcherTimer jumpTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3.5) };
             jumpTimer.Tick += (s, e) => MoveWindowToRandom(stopButtonWindow);
             jumpTimer.Start();
@@ -252,11 +322,9 @@ namespace AstraCosmeris_
             stopButtonWindow.Show();
             MoveWindowToRandom(stopButtonWindow);
 
-            // 3. Timer Xả rác (0.4s đẻ 1 cái)
             spamTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
             spamTimer.Tick += (s, e) =>
             {
-                // Giới hạn max 50 cái trên màn hình để khỏi treo RAM
                 if (activePopups.Count >= 50)
                 {
                     activePopups[0].Close();
