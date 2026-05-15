@@ -216,6 +216,7 @@ namespace AstraCosmeris_
         private void MenuDashboard_Click(object sender, RoutedEventArgs e) => OpenDashboard();
         private void MenuPomodoro_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) new PomodoroSetupWindow(this).Show(); dashboard?.Hide(); }
         private void MenuSettings_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) new SettingsWindow().Show(); }
+        private void MenuExit_Click(object sender, RoutedEventArgs e) => this.Close();
 
         // ==========================================
         // MA THUẬT 2: RADAR & THAO TÚNG TÂM LÝ BẠO LỰC
