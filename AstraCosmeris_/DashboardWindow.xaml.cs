@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -14,6 +15,7 @@ namespace AstraCosmeris_
         private UcCalendar viewCalendar = new UcCalendar();
         private UcNotes viewNotes = new UcNotes();
         private UcTasks viewTasks = new UcTasks();
+        private UcCanvas viewCanvas;
 
         public DashboardWindow()
         {
@@ -27,7 +29,13 @@ namespace AstraCosmeris_
             clockTimer.Start();
 
             MainContent.Content = viewCalendar;
+            viewCanvas = new UcCanvas(this);
         }
+        private void BtnCanvas_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewCanvas;
+
+        // Hỗ trợ thu gọn UI cho Canvas
+        public void ToggleSidebar() { SidebarBorder.Visibility = SidebarBorder.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; }
+        public void ToggleFullScreen() { this.WindowState = this.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; }
 
         private void BtnCalendar_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewCalendar;
         private void BtnNotes_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewNotes;

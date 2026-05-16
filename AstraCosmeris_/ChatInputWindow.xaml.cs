@@ -159,6 +159,12 @@ namespace AstraCosmeris_
                 else ShowActionBubble("❌ Ụa, tớ không tìm thấy file hướng dẫn ở đâu cả!");
                 return true;
             }
+            if (lowerMsg.Contains("thu nhỏ") || lowerMsg.Contains("minimize") || lowerMsg.Contains("smol"))
+            {
+                ShowActionBubble("🤸‍♀️ Thu nhỏ tớ lại nè!");
+                Task.Delay(1000).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => parentPet.ToggleSmolMode()));
+                return true;
+            }
             return false;
         }
 

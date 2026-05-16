@@ -72,7 +72,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="#9FB2D4" CornerRadius="13,0,0,13">
+            <Border Grid.Column="0" Background="#9FB2D4" CornerRadius="13,0,0,13" x:Name="SidebarBorder">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -85,39 +85,56 @@
                                    Foreground="#2F3273" HorizontalAlignment="Center"/>
                     </Border>
 
-                    <StackPanel Grid.Row="1" Margin="15,0,15,0">
-                        <StackPanel.Resources>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#FDF8E2"/>
-                                <Setter Property="Foreground" Value="#2F3273"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="FontSize" Value="28"/>
-                                <Setter Property="Margin" Value="0,0,0,15"/>
-                                <Setter Property="Padding" Value="15,10"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="{TemplateBinding Background}" CornerRadius="8">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </StackPanel.Resources>
+                    <Grid Grid.Row="1" Margin="15,0,15,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <Button Content="Calendar" Click="BtnCalendar_Click"/>
-                        <Button Content="Notes" Click="BtnNotes_Click"/>
-                        <Button Content="Tasks" Click="BtnTasks_Click"/>
-                    </StackPanel>
+                        <Button Grid.Row="0" Content="Calendar" Click="BtnCalendar_Click" Background="#FDF8E2" Foreground="#2F3273" FontWeight="Bold" FontSize="28" Padding="15,10" Margin="0,0,0,15" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <Button Grid.Row="1" Content="Notes" Click="BtnNotes_Click" Background="#FDF8E2" Foreground="#2F3273" FontWeight="Bold" FontSize="28" Padding="15,10" Margin="0,0,0,15" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="🖌️ Canvas" Click="BtnCanvas_Click" Background="#FDF8E2" Foreground="#2F3273" FontWeight="Bold" FontSize="22" Padding="10,12" BorderThickness="0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="8"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                            <Button Grid.Column="2" Content="✅ Tasks" Click="BtnTasks_Click" Background="#FDF8E2" Foreground="#2F3273" FontWeight="Bold" FontSize="22" Padding="10,12" BorderThickness="0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="8"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </Grid>
+                    </Grid>
 
                     <Image x:Name="AstraImage" Grid.Row="1" 
-                           VerticalAlignment="Top" HorizontalAlignment="Left" 
-                           Margin="-22,146,0,0" Width="442" Stretch="Uniform" Height="429" Grid.RowSpan="2"/>
+                           VerticalAlignment="Top" HorizontalAlignment="Left" Width="442" Stretch="Uniform" Height="377" Margin="0,188,0,0" Grid.RowSpan="2"/>
 
-                    <Button Grid.Row="2" Width="126" Height="114" Margin="162,165,0,0" 
+                    <Button Grid.Row="2" Width="126" Height="114" Margin="175,209,0,0" 
                             HorizontalAlignment="Left" VerticalAlignment="Top" 
                             Background="Transparent" BorderThickness="0" Cursor="Hand" 
                             Click="BtnPomodoroSetup_Click">
