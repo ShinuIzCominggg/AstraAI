@@ -5,6 +5,8 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        MouseMove="Window_MouseMove"
+        MouseLeftButtonUp="Window_MouseLeftButtonUp"
         MouseDoubleClick="Window_MouseDoubleClick"
         Loaded="Window_Loaded">
     <Window.ContextMenu>
@@ -17,7 +19,11 @@
             <MenuItem Header="❌ Exit" Click="MenuExit_Click"/>
         </ContextMenu>
     </Window.ContextMenu>
-    <Grid>
+
+    <Grid RenderTransformOrigin="0.5,0.1">
+        <Grid.RenderTransform>
+            <RotateTransform x:Name="DragRotation" Angle="0"/>
+        </Grid.RenderTransform>
         <Image x:Name="PetImage" Stretch="Uniform" Source="/assets/idle/idle.png"/>
     </Grid>
 </Window>

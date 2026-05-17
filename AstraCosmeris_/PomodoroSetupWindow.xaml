@@ -3,7 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Pomodoro Setup" Height="420" Width="380" WindowStartupLocation="CenterScreen"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent">
-    <Border Background="#FDF8E2" CornerRadius="25" BorderBrush="#2F3273" BorderThickness="5" MouseLeftButtonDown="Border_MouseLeftButtonDown">
+
+    <Border Background="#FDF8E2" CornerRadius="25" BorderBrush="#2F3273" BorderThickness="5" MouseLeftButtonDown="Border_MouseLeftButtonDown" RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TransformGroup>
+                <RotateTransform x:Name="ShakeRotation" Angle="0"/>
+                <TranslateTransform x:Name="ShakeTranslation" X="0" Y="0"/>
+            </TransformGroup>
+        </Border.RenderTransform>
+
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,25">
                 <Image Source="/assets/pomodoro/tomato.png" Width="40" Height="40" Margin="0,0,10,0"/>
@@ -32,7 +40,7 @@
                 </StackPanel>
             </Grid>
 
-            <Button Content="🚀 BẮT ĐẦU FOCUS" Background="#2F3273" Foreground="White" FontWeight="Bold" FontSize="18" Margin="0,25,0,0" Padding="25,12" Cursor="Hand" Click="BtnStart_Click">
+            <Button x:Name="BtnStart" Content="🚀 BẮT ĐẦU FOCUS" Background="#2F3273" Foreground="White" FontWeight="Bold" FontSize="18" Margin="0,25,0,0" Padding="25,12" Cursor="Hand" Click="BtnStart_Click">
                 <Button.Resources>
                     <Style TargetType="Border">
                         <Setter Property="CornerRadius" Value="15"/>

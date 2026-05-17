@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -16,6 +17,7 @@ namespace AstraCosmeris_
         private UcNotes viewNotes = new UcNotes();
         private UcTasks viewTasks = new UcTasks();
         private UcCanvas viewCanvas;
+        private bool isAnimating = false; // Cờ chống lag
 
         public DashboardWindow()
         {
@@ -31,17 +33,38 @@ namespace AstraCosmeris_
             MainContent.Content = viewCalendar;
             viewCanvas = new UcCanvas(this);
         }
-        private void BtnCanvas_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewCanvas;
 
         // Hỗ trợ thu gọn UI cho Canvas
         public void ToggleSidebar() { SidebarBorder.Visibility = SidebarBorder.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; }
         public void ToggleFullScreen() { this.WindowState = this.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; }
 
-        private void BtnCalendar_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewCalendar;
-        private void BtnNotes_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewNotes;
-        private void BtnTasks_Click(object sender, RoutedEventArgs e) => MainContent.Content = viewTasks;
+        private void SwitchTab(System.Windows.Controls.UserControl newView)
+        {
+            if (isAnimating || MainContent.Content == newView) return;
+            isAnimating = true;
 
-        private void BtnClose_Click(object sender, RoutedEventArgs e) => this.Hide();
+            DoubleAnimation fadeOut = new DoubleAnimation { To = 0.0, Duration = TimeSpan.FromMilliseconds(150), EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            fadeOut.Completed += (s, e) =>
+            {
+                MainContent.Content = newView;
+                DoubleAnimation fadeIn = new DoubleAnimation { To = 1.0, Duration = TimeSpan.FromMilliseconds(200), EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+                fadeIn.Completed += (s2, e2) => isAnimating = false;
+                MainContent.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+            };
+            MainContent.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+        }
+
+        private void BtnCalendar_Click(object sender, RoutedEventArgs e) => SwitchTab(viewCalendar);
+        private void BtnNotes_Click(object sender, RoutedEventArgs e) => SwitchTab(viewNotes);
+        private void BtnTasks_Click(object sender, RoutedEventArgs e) => SwitchTab(viewTasks);
+        private void BtnCanvas_Click(object sender, RoutedEventArgs e) => SwitchTab(viewCanvas);
+
+        private void BtnClose_Click(object sender, RoutedEventArgs e)
+        {
+            var mainWindow = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
+            if (mainWindow != null) mainWindow.CloseExclusiveWindow();
+            else this.Hide();
+        }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -55,8 +78,10 @@ namespace AstraCosmeris_
             if (mainWindow != null && mainWindow.isFocusMode) return;
             if (System.Windows.Application.Current.Windows.OfType<PomodoroSetupWindow>().Any()) return;
 
-            this.Hide();
-            if (mainWindow != null) new PomodoroSetupWindow(mainWindow).Show();
+            if (mainWindow != null)
+            {
+                mainWindow.OpenExclusiveWindow(new PomodoroSetupWindow(mainWindow));
+            }
         }
     }
 }

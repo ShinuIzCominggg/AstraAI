@@ -28,7 +28,7 @@ namespace AstraCosmeris_
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
             parentPet.isBigChatOpen = false;
-            this.Close();
+            parentPet.CloseExclusiveWindow();
         }
 
         private async void BtnSend_Click(object sender, RoutedEventArgs e) => await SendMessage();

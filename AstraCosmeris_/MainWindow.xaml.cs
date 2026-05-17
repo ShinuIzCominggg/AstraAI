@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -28,18 +29,25 @@ namespace AstraCosmeris_
         // --- ĐỘNG CƠ VẬT LÝ CHO ASTRA SMOL ---
         private DispatcherTimer? physicsTimer;
         private double velX = 0, velY = 0;
-        private double gravity = 0.6;
-        private double bounce = -0.75;
+        private double friction = 0.94; // Ma sát trượt (Càng gần 1 trượt càng xa)
+        private double bounce = -0.7;   // Độ nảy khi đập tường
         private double originalWidth, originalHeight;
 
         private System.Windows.Forms.NotifyIcon? trayIcon;
+
+        // --- QUẢN LÝ CỬA SỔ ĐỘC QUYỀN (FLYOUT ANIMATION) ---
+        private Window? currentExclusiveWindow = null;
         private DashboardWindow? dashboard;
         private ChatInputWindow? chatWindow;
         private ChatHistoryWindow? bigChatWindow;
 
+        // --- QUÁN TÍNH CHUỘT ---
+        private bool _isDragging = false;
+        private System.Windows.Point _dragStartPos;
+        private System.Windows.Point _lastMousePos; // Biến mới để đo lực ném
+
         private string lastTriggeredMinute = "";
         private Random rand = new Random();
-
         private List<ReminderPopup> activePopups = new List<ReminderPopup>();
         private DispatcherTimer? spamTimer;
 
@@ -69,7 +77,6 @@ namespace AstraCosmeris_
             SetupTrayIcon();
             ChangeState(PetState.Idle);
 
-            // Khởi tạo vòng lặp vật lý (60 FPS)
             physicsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
             physicsTimer.Tick += PhysicsTimer_Tick;
         }
@@ -145,7 +152,7 @@ namespace AstraCosmeris_
             contextMenu.Items.Add("🤏 Thu nhỏ (Smol Astra)", null, (s, e) => ToggleSmolMode());
             contextMenu.Items.Add("🗂️ Open Dashboard", null, (s, e) => OpenDashboard());
             contextMenu.Items.Add("⚙️ Cài đặt (Settings)", null, (s, e) => {
-                if (isFocusMode) return; new SettingsWindow().Show();
+                if (isFocusMode) return; OpenExclusiveWindow(new SettingsWindow());
             });
             contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             contextMenu.Items.Add("Quit", null, (s, e) => this.Close());
@@ -165,12 +172,81 @@ namespace AstraCosmeris_
 
         private void UpdateFrame() { if (currentFrames.Length > 0 && !isSmol) PetImage.Source = new BitmapImage(new Uri(currentFrames[currentFrameIndex])); }
 
+        // ==========================================
+        // VẬT LÝ QUÁN TÍNH: XÁCH CỔ ASTRA LẮC LƯ
+        // ==========================================
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2 && e.ButtonState == MouseButtonState.Pressed)
+            if (e.ClickCount != 2)
             {
-                if (isSmol) { velX = 0; velY = 0; } // Cầm lên thì dừng gia tốc
-                this.DragMove();
+                if (isSmol)
+                {
+                    physicsTimer?.Stop(); // Đang cầm thì rút điện vật lý cho nhẹ RAM
+                    velX = 0; velY = 0;
+                }
+                _isDragging = true;
+                _dragStartPos = PointToScreen(e.GetPosition(this));
+                _lastMousePos = _dragStartPos;
+                this.CaptureMouse();
+            }
+        }
+
+        private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isDragging)
+            {
+                System.Windows.Point currentPos = PointToScreen(e.GetPosition(this));
+                double deltaX = currentPos.X - _dragStartPos.X;
+                double deltaY = currentPos.Y - _dragStartPos.Y;
+
+                this.Left += deltaX;
+                this.Top += deltaY;
+
+                if (isSmol)
+                {
+                    double instVelX = currentPos.X - _lastMousePos.X;
+                    double instVelY = currentPos.Y - _lastMousePos.Y;
+
+                    // Đo lực ném: Chỉ ghi nhận lực khi chuột đang di chuyển thật sự
+                    // Nhân 2 để văng cho mượt, ném phát bay sang kia màn hình
+                    if (Math.Abs(instVelX) > 0.5 || Math.Abs(instVelY) > 0.5)
+                    {
+                        velX = instVelX * 2.0;
+                        velY = instVelY * 2.0;
+                    }
+                    _lastMousePos = currentPos;
+                }
+                else
+                {
+                    DragRotation.Angle = Math.Clamp(deltaX * 1.5, -30, 30);
+                }
+
+                _dragStartPos = currentPos;
+            }
+        }
+
+        private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isDragging)
+            {
+                _isDragging = false;
+                this.ReleaseMouseCapture();
+
+                if (isSmol)
+                {
+                    // Thả chuột ra là cắm điện Timer Vật lý cho nó trượt ngay lập tức
+                    physicsTimer?.Start();
+                }
+                else
+                {
+                    DoubleAnimation springAnim = new DoubleAnimation
+                    {
+                        To = 0,
+                        Duration = TimeSpan.FromMilliseconds(800),
+                        EasingFunction = new ElasticEase { Oscillations = 3, Springiness = 5, EasingMode = EasingMode.EaseOut }
+                    };
+                    DragRotation.BeginAnimation(RotateTransform.AngleProperty, springAnim);
+                }
             }
         }
 
@@ -181,8 +257,15 @@ namespace AstraCosmeris_
             if (e.ChangedButton == MouseButton.Left)
             {
                 ChangeState(PetState.Happy);
-                if (isBigChatOpen) { bigChatWindow?.Activate(); return; }
-                if (chatWindow == null)
+
+                // HOT FIX: Vá lỗi kẹt cờ khiến không mở được ChatInput
+                if (isBigChatOpen)
+                {
+                    if (bigChatWindow != null && bigChatWindow.IsLoaded) { bigChatWindow.Activate(); return; }
+                    else { isBigChatOpen = false; bigChatWindow = null; } // Giải phóng cờ kẹt!
+                }
+
+                if (chatWindow == null || !chatWindow.IsLoaded)
                 {
                     chatWindow = new ChatInputWindow(this);
                     chatWindow.Closed += (s, args) => chatWindow = null;
@@ -193,8 +276,77 @@ namespace AstraCosmeris_
         }
 
         // ==========================================
-        // VẬT LÝ HẠT NHÂN: ASTRA SMOL MODE
+        // TRÌNH QUẢN LÝ CỬA SỔ ĐỘC QUYỀN (FLYOUT)
         // ==========================================
+        public void OpenExclusiveWindow(Window newWin)
+        {
+            if (isFocusMode) return;
+
+            var wa = SystemParameters.WorkArea;
+            newWin.WindowStartupLocation = WindowStartupLocation.Manual;
+
+            if (currentExclusiveWindow != null && currentExclusiveWindow.IsVisible)
+            {
+                // Cửa sổ cũ rớt xuống đáy màn hình
+                DoubleAnimation slideDown = new DoubleAnimation
+                {
+                    To = wa.Bottom + 50,
+                    Duration = TimeSpan.FromMilliseconds(300),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+                };
+                slideDown.Completed += (s, e) => {
+                    currentExclusiveWindow.Hide();
+                    if (currentExclusiveWindow is SettingsWindow || currentExclusiveWindow is PomodoroSetupWindow)
+                        currentExclusiveWindow.Close();
+                    ShowNewWindow(newWin, wa);
+                };
+                currentExclusiveWindow.BeginAnimation(Window.TopProperty, slideDown);
+            }
+            else
+            {
+                ShowNewWindow(newWin, wa);
+            }
+        }
+
+        private void ShowNewWindow(Window newWin, Rect wa)
+        {
+            currentExclusiveWindow = newWin;
+            newWin.Left = wa.Left + (wa.Width - newWin.Width) / 2;
+            newWin.Top = -newWin.Height - 50; // Giấu tuốt trên đỉnh đầu
+            newWin.Show();
+
+            double targetTop = wa.Top + (wa.Height - newWin.Height) / 2; // Rơi xuống giữa màn hình
+            DoubleAnimation slideIn = new DoubleAnimation
+            {
+                To = targetTop,
+                Duration = TimeSpan.FromMilliseconds(500),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            newWin.BeginAnimation(Window.TopProperty, slideIn);
+        }
+
+        public void CloseExclusiveWindow()
+        {
+            if (currentExclusiveWindow != null && currentExclusiveWindow.IsVisible)
+            {
+                var wa = SystemParameters.WorkArea;
+                DoubleAnimation slideDown = new DoubleAnimation
+                {
+                    To = wa.Bottom + 50,
+                    Duration = TimeSpan.FromMilliseconds(400),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+                };
+
+                slideDown.Completed += (s, e) => {
+                    currentExclusiveWindow.Hide();
+                    if (currentExclusiveWindow is SettingsWindow || currentExclusiveWindow is PomodoroSetupWindow)
+                        currentExclusiveWindow.Close();
+                    currentExclusiveWindow = null;
+                };
+                currentExclusiveWindow.BeginAnimation(Window.TopProperty, slideDown);
+            }
+        }
+
         public void ToggleSmolMode()
         {
             if (!isSmol)
@@ -218,37 +370,51 @@ namespace AstraCosmeris_
 
         private void PhysicsTimer_Tick(object? sender, EventArgs e)
         {
-            if (Mouse.LeftButton == MouseButtonState.Pressed) return; // Đang cầm thì không rơi
+            if (_isDragging) return;
 
-            velY += gravity;
-            this.Top += velY;
+            // Áp dụng ma sát làm giảm dần vận tốc (BumpTop Effect, lơ lửng mọi nơi)
+            velX *= friction;
+            velY *= friction;
             this.Left += velX;
+            this.Top += velY;
+
             var wa = SystemParameters.WorkArea;
             bool hit = false;
 
-            if (this.Top + this.Height > wa.Bottom) { this.Top = wa.Bottom - this.Height; velY *= bounce; velX *= 0.95; if (Math.Abs(velY) > 3) hit = true; }
-            if (this.Left < wa.Left) { this.Left = wa.Left; velX *= bounce; if (Math.Abs(velX) > 3) hit = true; }
-            else if (this.Left + this.Width > wa.Right) { this.Left = wa.Right - this.Width; velX *= bounce; if (Math.Abs(velX) > 3) hit = true; }
+            // Xử lý nảy đập 4 bức tường
+            if (this.Top < wa.Top) { this.Top = wa.Top; velY *= bounce; hit = true; }
+            else if (this.Top + this.Height > wa.Bottom) { this.Top = wa.Bottom - this.Height; velY *= bounce; hit = true; }
+            if (this.Left < wa.Left) { this.Left = wa.Left; velX *= bounce; hit = true; }
+            else if (this.Left + this.Width > wa.Right) { this.Left = wa.Right - this.Width; velX *= bounce; hit = true; }
 
-            if (hit && rand.Next(10) < 3) // 30% tỷ lệ kêu la khi va đập mạnh
+            if (hit && (Math.Abs(velX) + Math.Abs(velY) > 5) && rand.Next(10) < 3)
             {
                 string[] cries = { "Á!", "Ui da!", "Đau tớ!", "Cứu!" };
                 new SpeechBubble(cries[rand.Next(cries.Length)], this, 1000).Show();
             }
+
+            // MA THUẬT TIẾT KIỆM RAM: Khi nó trượt chậm lại và dừng hẳn, TẮT TIMER!
+            if (Math.Abs(velX) < 0.5 && Math.Abs(velY) < 0.5) physicsTimer?.Stop();
         }
 
-        public void OpenDashboard() { if (isFocusMode) return; DataManager.TrackDashboardOpen(); if (dashboard == null || !dashboard.IsLoaded) { dashboard = new DashboardWindow(); dashboard.Show(); } else dashboard.Show();  dashboard.Activate(); }
+        public void OpenDashboard() { if (isFocusMode) return; DataManager.TrackDashboardOpen(); if (dashboard == null || !dashboard.IsLoaded) { dashboard = new DashboardWindow(); } OpenExclusiveWindow(dashboard); }
         public void CloseAllChats() { chatWindow?.Close(); chatWindow = null; bigChatWindow?.Close(); bigChatWindow = null; isBigChatOpen = false; }
         private void MenuSmol_Click(object sender, RoutedEventArgs e) => ToggleSmolMode();
-        private void MenuBigChat_Click(object sender, RoutedEventArgs e) { if (!isFocusMode && !isBigChatOpen) { isBigChatOpen = true; var bigChat = new ChatHistoryWindow(this); bigChat.Closed += (s, args) => { isBigChatOpen = false; ChangeState(PetState.Idle); }; bigChat.Show(); } }
+        private void MenuBigChat_Click(object sender, RoutedEventArgs e)
+        {
+            if (!isFocusMode && !isBigChatOpen)
+            {
+                isBigChatOpen = true;
+                bigChatWindow = new ChatHistoryWindow(this); // Gán vào biến hệ thống
+                bigChatWindow.Closed += (s, args) => { isBigChatOpen = false; bigChatWindow = null; ChangeState(PetState.Idle); };
+                OpenExclusiveWindow(bigChatWindow); // Mở bằng hiệu ứng bay từ trên xuống
+            }
+        }
         private void MenuDashboard_Click(object sender, RoutedEventArgs e) => OpenDashboard();
-        private void MenuPomodoro_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) new PomodoroSetupWindow(this).Show(); dashboard?.Hide(); }
-        private void MenuSettings_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) new SettingsWindow().Show(); }
+        private void MenuPomodoro_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) OpenExclusiveWindow(new PomodoroSetupWindow(this)); }
+        private void MenuSettings_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) OpenExclusiveWindow(new SettingsWindow()); }
         private void MenuExit_Click(object sender, RoutedEventArgs e) => this.Close();
 
-        // ==========================================
-        // TRỪNG PHẠT KÉP: BUNG CÙNG LÚC TOAST & POPUPS
-        // ==========================================
         private void TaskRadarTimer_Tick(object? sender, EventArgs e)
         {
             string currentMinute = DateTime.Now.ToString("HH:mm");
@@ -277,7 +443,6 @@ namespace AstraCosmeris_
         {
             bool isHandled = false;
 
-            // Bật xả rác ngay lập tức
             StartReminderStorm($"⚠️ {task}\nĐÃ BẢO LÀ LÀM NGAY ĐI CƠ MÀ!!!");
 
             var notif = new AstraNotificationWindow(
@@ -296,7 +461,6 @@ namespace AstraCosmeris_
             );
 
             notif.Closed += (s, e) => {
-                // Nếu lờ cái Toast đi để nó tự tắt, Toast sẽ TỰ ĐẺ LẠI để ép người dùng phải bấm
                 if (!isHandled) TriggerReminder(task, dateKey, lineIndex, allLines);
             };
             notif.Show();
@@ -305,7 +469,7 @@ namespace AstraCosmeris_
         private void StartReminderStorm(string text)
         {
             if (spamTimer != null && spamTimer.IsEnabled) return;
-            spamTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) }; // Bắn siêu tốc
+            spamTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
             spamTimer.Tick += (s, e) =>
             {
                 if (activePopups.Count >= 50) { activePopups[0].Close(); activePopups.RemoveAt(0); }
