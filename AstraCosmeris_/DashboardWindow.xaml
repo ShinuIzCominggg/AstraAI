@@ -134,7 +134,7 @@
                     <Image x:Name="AstraImage" Grid.Row="1" 
                            VerticalAlignment="Top" HorizontalAlignment="Left" Width="442" Stretch="Uniform" Height="377" Margin="0,188,0,0" Grid.RowSpan="2"/>
 
-                    <Button Grid.Row="2" Width="126" Height="114" Margin="175,209,0,0" 
+                    <Button Grid.Row="2" Width="126" Height="114" Margin="157,141,0,0" 
                             HorizontalAlignment="Left" VerticalAlignment="Top" 
                             Background="Transparent" BorderThickness="0" Cursor="Hand" 
                             Click="BtnPomodoroSetup_Click">
