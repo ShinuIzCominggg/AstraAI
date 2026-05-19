@@ -27,9 +27,9 @@ namespace AstraCosmeris_
         {
             var data = DataManager.Data;
             TxtApiKey.Text = data.ApiKey;
-            TxtModel.Text = data.ApiModel; // Load model tự do
 
             CboProvider.SelectedIndex = data.ApiProvider switch { "OpenAI" => 1, "Gemini" => 2, "Claude" => 3, "Ollama" => 4, "OpenRouter" => 5, _ => 0 };
+            TxtModel.Text = data.ApiModel;
 
             // Phân tích Persona: Custom hay Preset?
             if (data.SelectedPersona == "Custom")

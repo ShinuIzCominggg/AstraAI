@@ -299,7 +299,9 @@ namespace AstraCosmeris_
 
             if (currentExclusiveWindow != null && currentExclusiveWindow.IsVisible)
             {
-                // Cửa sổ cũ rớt xuống đáy màn hình
+                // 👉 FIX 2: Tạo biến cục bộ oldWin để khóa mục tiêu, tránh lỗi bất đồng bộ/chồng chéo khi spam click nhanh
+                Window oldWin = currentExclusiveWindow;
+
                 DoubleAnimation slideDown = new DoubleAnimation
                 {
                     To = wa.Bottom + 50,
@@ -307,12 +309,15 @@ namespace AstraCosmeris_
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
                 };
                 slideDown.Completed += (s, e) => {
-                    currentExclusiveWindow.Hide();
-                    if (currentExclusiveWindow is SettingsWindow || currentExclusiveWindow is PomodoroSetupWindow)
-                        currentExclusiveWindow.Close();
+                    oldWin.Hide();
+
+                    // 👉 FIX 3: Ép Close luôn cả ChatHistoryWindow (Big Chat) để giải phóng bộ nhớ và reset cờ isBigChatOpen về false!
+                    if (oldWin is SettingsWindow || oldWin is PomodoroSetupWindow || oldWin is ChatHistoryWindow)
+                        oldWin.Close();
+
                     ShowNewWindow(newWin, wa);
                 };
-                currentExclusiveWindow.BeginAnimation(Window.TopProperty, slideDown);
+                oldWin.BeginAnimation(Window.TopProperty, slideDown);
             }
             else
             {
@@ -342,6 +347,9 @@ namespace AstraCosmeris_
             if (currentExclusiveWindow != null && currentExclusiveWindow.IsVisible)
             {
                 var wa = SystemParameters.WorkArea;
+                // 👉 Áp dụng bảo hiểm tương tự cho hàm Close
+                Window oldWin = currentExclusiveWindow;
+
                 DoubleAnimation slideDown = new DoubleAnimation
                 {
                     To = wa.Bottom + 50,
@@ -350,12 +358,15 @@ namespace AstraCosmeris_
                 };
 
                 slideDown.Completed += (s, e) => {
-                    currentExclusiveWindow.Hide();
-                    if (currentExclusiveWindow is SettingsWindow || currentExclusiveWindow is PomodoroSetupWindow)
-                        currentExclusiveWindow.Close();
-                    currentExclusiveWindow = null;
+                    oldWin.Hide();
+                    // 👉 Ép hủy hoàn toàn cửa sổ chat khi đóng bằng nút X hoặc hạ xuống
+                    if (oldWin is SettingsWindow || oldWin is PomodoroSetupWindow || oldWin is ChatHistoryWindow)
+                        oldWin.Close();
+
+                    if (currentExclusiveWindow == oldWin)
+                        currentExclusiveWindow = null;
                 };
-                currentExclusiveWindow.BeginAnimation(Window.TopProperty, slideDown);
+                oldWin.BeginAnimation(Window.TopProperty, slideDown);
             }
         }
 
