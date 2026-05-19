@@ -50,16 +50,17 @@ namespace AstraCosmeris_
             InputBox.Text = "";
 
             DataManager.Data.History.Add(new Dictionary<string, string> { { "role", "user" }, { "content", userText } });
+            ChatList.Items.Refresh();
             ChatScroll.ScrollToEnd();
 
             parentPet.ChangeState(PetState.Thinking);
 
-            // --- GỌI BỘ NÃO TRUNG TÂM ---
             string reply = await AstraBrain.ThinkAndReply();
 
             DataManager.Data.History.Add(new Dictionary<string, string> { { "role", "assistant" }, { "content", reply } });
             DataManager.SaveData();
 
+            ChatList.Items.Refresh();
             ChatScroll.ScrollToEnd();
             parentPet.ChangeState(PetState.Happy);
         }

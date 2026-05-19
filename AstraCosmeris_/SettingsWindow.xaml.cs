@@ -15,6 +15,7 @@ namespace AstraCosmeris_
         }
 
         private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (e.ChangedButton == System.Windows.Input.MouseButton.Left) this.DragMove(); }
+
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
             var mainWindow = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
@@ -26,16 +27,33 @@ namespace AstraCosmeris_
         {
             var data = DataManager.Data;
             TxtApiKey.Text = data.ApiKey;
+            TxtModel.Text = data.ApiModel; // Load model tự do
 
-            // Load Combobox AI
             CboProvider.SelectedIndex = data.ApiProvider switch { "OpenAI" => 1, "Gemini" => 2, "Claude" => 3, "Ollama" => 4, "OpenRouter" => 5, _ => 0 };
 
-            // Load Persona
-            CboPersona.SelectedIndex = data.SelectedPersona switch { "Nghiêm khắc" => 1, "Chủ tịch" => 2, "Gen Z" => 3, _ => 0 };
+            // Phân tích Persona: Custom hay Preset?
+            if (data.SelectedPersona == "Custom")
+            {
+                RadCustomPersona.IsChecked = true;
+                TxtCustomPersona.Text = data.SystemPrompt;
+            }
+            else
+            {
+                RadPresetPersona.IsChecked = true;
+                CboPersona.SelectedIndex = data.SelectedPersona switch { "Nghiêm khắc" => 1, "Chủ tịch" => 2, "Gen Z" => 3, _ => 0 };
+            }
 
-            // Load Notifications
             ChkSound.IsChecked = data.NotiConfig.EnableSound;
             TxtDuration.Text = data.NotiConfig.DurationSeconds.ToString();
+
+            if (data.Facts.ContainsKey("__PhysicsMode") && int.TryParse(data.Facts["__PhysicsMode"], out int physicsMode))
+            {
+                CboPhysics.SelectedIndex = physicsMode;
+            }
+            else
+            {
+                CboPhysics.SelectedIndex = 0; // Mặc định là Cân bằng
+            }
 
             RefreshMemoryList();
         }
@@ -47,21 +65,35 @@ namespace AstraCosmeris_
 
         private void CboProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CboModel == null) return;
-            CboModel.Items.Clear();
-            var models = new List<string>();
-            switch (CboProvider.SelectedIndex)
+            if (TxtModel == null) return;
+            // Chỉ GỢI Ý model mặc định khi người dùng chuyển tab, không ép cứng
+            TxtModel.Text = CboProvider.SelectedIndex switch
             {
-                case 0: models.AddRange(new[] { "llama-3.1-8b-instant", "mixtral-8x7b" }); break;
-                case 1: models.AddRange(new[] { "gpt-4o", "gpt-4o-mini" }); break;
-                case 2: models.AddRange(new[] { "gemini-1.5-pro", "gemini-1.5-flash" }); break;
-                case 3: models.AddRange(new[] { "claude-3-5-sonnet-20240620" }); break;
-            }
-            foreach (var model in models) CboModel.Items.Add(model);
-            if (CboModel.Items.Count > 0) CboModel.SelectedIndex = 0;
+                0 => "llama-3.1-8b-instant",
+                1 => "gpt-4o-mini",
+                2 => "gemini-1.5-flash",
+                3 => "claude-3-5-sonnet-20241022",
+                4 => "llama3",
+                5 => "meta-llama/llama-3-8b-instruct:free",
+                _ => ""
+            };
+        }
 
-            // Khôi phục model cũ nếu có
-            if (CboModel.Items.Contains(DataManager.Data.ApiModel)) CboModel.SelectedItem = DataManager.Data.ApiModel;
+        private void PersonaToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (CboPersona == null || TxtCustomPersona == null) return;
+            if (RadPresetPersona.IsChecked == true)
+            {
+                CboPersona.Visibility = Visibility.Visible;
+                TxtPersonaDesc.Visibility = Visibility.Visible;
+                TxtCustomPersona.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                CboPersona.Visibility = Visibility.Collapsed;
+                TxtPersonaDesc.Visibility = Visibility.Collapsed;
+                TxtCustomPersona.Visibility = Visibility.Visible;
+            }
         }
 
         private void CboPersona_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -100,31 +132,37 @@ namespace AstraCosmeris_
             }
         }
 
-        private void BtnTestNoti_Click(object sender, RoutedEventArgs e)
-        {
-            new AstraNotificationWindow("✨ Ding dong!", "Đây là một thông báo test từ hệ thống cài đặt của Astra.").Show();
-        }
+        private void BtnTestNoti_Click(object sender, RoutedEventArgs e) => new AstraNotificationWindow("✨ Ding dong!", "Thông báo test từ Astra.").Show();
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
             var data = DataManager.Data;
             data.ApiKey = TxtApiKey.Text.Trim();
-            data.ApiModel = CboModel.SelectedItem?.ToString() ?? "";
+            data.ApiModel = TxtModel.Text.Trim(); // Lưu model Custom
             data.ApiProvider = CboProvider.SelectedIndex switch { 1 => "OpenAI", 2 => "Gemini", 3 => "Claude", 4 => "Ollama", 5 => "OpenRouter", _ => "Groq" };
 
-            // Save Persona
-            data.SelectedPersona = CboPersona.SelectedIndex switch { 1 => "Nghiêm khắc", 2 => "Chủ tịch", 3 => "Gen Z", _ => "Dịu dàng" };
-            data.SystemPrompt = CboPersona.SelectedIndex switch
+            // Xử lý lưu Persona
+            if (RadCustomPersona.IsChecked == true)
             {
-                1 => "Bạn là Astra, một trợ lý AI vô cùng nghiêm khắc và kỷ luật. Luôn xưng Tôi và gọi người dùng là Bạn. Trách mắng nếu người dùng lười biếng.",
-                2 => "Bạn là Astra, nữ chủ tịch tập đoàn lạnh lùng, quyết đoán. Xưng Tôi và gọi người dùng là Cậu. Trả lời ngắn gọn, đánh đúng trọng tâm.",
-                3 => "Bạn là Astra, một GenZ chính hiệu, năng động, hay đùa nhây. Xưng Tui và gọi người dùng là Bà/Ông. Dùng nhiều tiếng lóng vui nhộn.",
-                _ => "Bạn là Astra, một trợ lý ảo mang tính cách của một cô gái nhút nhát, hướng nội nhưng vô cùng dịu dàng. Xưng Tớ và gọi người dùng là Cậu."
-            };
+                data.SelectedPersona = "Custom";
+                data.SystemPrompt = TxtCustomPersona.Text.Trim();
+            }
+            else
+            {
+                data.SelectedPersona = CboPersona.SelectedIndex switch { 1 => "Nghiêm khắc", 2 => "Chủ tịch", 3 => "Gen Z", _ => "Dịu dàng" };
+                data.SystemPrompt = CboPersona.SelectedIndex switch
+                {
+                    1 => "Bạn là Astra, một trợ lý AI vô cùng nghiêm khắc và kỷ luật. Luôn xưng Tôi và gọi người dùng là Bạn. Trách mắng nếu người dùng lười biếng.",
+                    2 => "Bạn là Astra, nữ chủ tịch tập đoàn lạnh lùng, quyết đoán. Xưng Tôi và gọi người dùng là Cậu. Trả lời ngắn gọn, đánh đúng trọng tâm.",
+                    3 => "Bạn là Astra, một GenZ chính hiệu, năng động, hay đùa nhây. Xưng Tui và gọi người dùng là Bà/Ông. Dùng nhiều tiếng lóng vui nhộn.",
+                    _ => "Bạn là Astra, một trợ lý ảo mang tính cách của một cô gái nhút nhát, hướng nội nhưng vô cùng dịu dàng. Xưng Tớ và gọi người dùng là Cậu."
+                };
+            }
 
-            // Save Notification
             data.NotiConfig.EnableSound = ChkSound.IsChecked ?? true;
             if (int.TryParse(TxtDuration.Text, out int dur)) data.NotiConfig.DurationSeconds = dur;
+
+            data.Facts["__PhysicsMode"] = CboPhysics.SelectedIndex.ToString();
 
             DataManager.SaveData();
             new AstraNotificationWindow("✅ Lưu thành công", "Cài đặt của cậu đã được lưu lại!").Show();

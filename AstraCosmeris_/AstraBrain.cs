@@ -10,7 +10,6 @@ namespace AstraCosmeris_
 {
     public static class AstraBrain
     {
-        // TỐI ƯU: Dùng chung 1 HttpClient toàn hệ thống để tránh tràn bộ nhớ mạng (Socket Exhaustion)
         private static readonly HttpClient _httpClient = new HttpClient();
 
         public static async Task<string> ThinkAndReply()
@@ -19,23 +18,13 @@ namespace AstraCosmeris_
             string apiKey = data.ApiKey;
             string provider = data.ApiProvider;
 
-            // XỬ LÝ MODEL (Lấy từ Settings, nếu trống thì dùng mặc định)
-            string targetModel = string.IsNullOrWhiteSpace(data.ApiModel) ? provider switch
-            {
-                "OpenAI" => "gpt-3.5-turbo",
-                "Groq" => "llama-3.1-8b-instant",
-                "OpenRouter" => "meta-llama/llama-3-8b-instruct:free",
-                "Gemini" => "gemini-3.1-flash-preview",
-                "Claude" => "claude-3.5-sonnet-20241022",
-                "Ollama" => "llama3",
-                _ => "llama-3.1-8b-instant"
-            } : data.ApiModel;
+            // Lấy trực tiếp Model mà người dùng nhập
+            string targetModel = string.IsNullOrWhiteSpace(data.ApiModel) ? "llama-3.1-8b-instant" : data.ApiModel;
 
             string factsJson = JsonSerializer.Serialize(data.Facts);
-            string systemContext = $"{data.SystemPrompt}\nUser facts you must remember: {factsJson}";
+            string systemContext = $"{data.SystemPrompt}\n\n[USER FACTS/MEMORY]: {factsJson}";
 
-            if (string.IsNullOrEmpty(apiKey) && provider != "Ollama")
-                return "Cậu chưa nhập API Key trong phần Cài đặt kìa!";
+            if (string.IsNullOrEmpty(apiKey) && provider != "Ollama") return "Cậu chưa nhập API Key trong phần Cài đặt kìa!";
 
             try
             {
@@ -70,11 +59,10 @@ namespace AstraCosmeris_
                 else if (provider == "Gemini")
                 {
                     string apiUrl = $"https://generativelanguage.googleapis.com/v1beta/models/{targetModel}:generateContent?key={apiKey}";
-
                     var contentsList = new List<object>
                     {
-                        new { role = "user", parts = new[] { new { text = $"[SYSTEM PROMPT]: {systemContext}\n\n[USER]: Xin chào" } } },
-                        new { role = "model", parts = new[] { new { text = "Vâng, tớ đã hiểu thiết lập và thông tin của cậu!" } } }
+                        new { role = "user", parts = new[] { new { text = $"[SYSTEM PROMPT & CONTEXT]: {systemContext}\n\n[USER]: Xin chào" } } },
+                        new { role = "model", parts = new[] { new { text = "Vâng, tớ đã hiểu hoàn toàn thông tin hiện tại của cậu!" } } }
                     };
 
                     foreach (var msg in data.History)
@@ -136,7 +124,7 @@ namespace AstraCosmeris_
                 return $"[Lỗi {provider} ({targetModel})] {ex.Message}";
             }
 
-            return "Provider này tớ chưa được dạy cách dùng =))";
+            return "Provider này tớ chưa hỗ trợ!";
         }
     }
 }

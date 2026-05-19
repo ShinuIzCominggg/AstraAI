@@ -36,10 +36,10 @@ namespace AstraCosmeris_
         private System.Windows.Forms.NotifyIcon? trayIcon;
 
         // --- QUẢN LÝ CỬA SỔ ĐỘC QUYỀN (FLYOUT ANIMATION) ---
-        private Window? currentExclusiveWindow = null;
-        private DashboardWindow? dashboard;
-        private ChatInputWindow? chatWindow;
-        private ChatHistoryWindow? bigChatWindow;
+        public Window? currentExclusiveWindow = null;
+        public DashboardWindow? dashboard;
+        public ChatInputWindow? chatWindow;
+        public ChatHistoryWindow? bigChatWindow; // Đã đổi thành public để sửa lỗi CS0122
 
         // --- QUÁN TÍNH CHUỘT ---
         private bool _isDragging = false;
@@ -177,13 +177,19 @@ namespace AstraCosmeris_
         // ==========================================
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ClickCount != 2)
+            if (e.ChangedButton == MouseButton.Left && e.ClickCount != 2 && e.ButtonState == MouseButtonState.Pressed)
             {
                 if (isSmol)
                 {
-                    physicsTimer?.Stop(); // Đang cầm thì rút điện vật lý cho nhẹ RAM
+                    physicsTimer?.Stop();
                     velX = 0; velY = 0;
                 }
+                else
+                {
+                    // FIX LỖI LẮC 1 LẦN: Giải phóng Animation cũ, cho phép m cầm lắc 1000 lần vẫn mượt!
+                    DragRotation.BeginAnimation(RotateTransform.AngleProperty, null);
+                }
+
                 _isDragging = true;
                 _dragStartPos = PointToScreen(e.GetPosition(this));
                 _lastMousePos = _dragStartPos;
@@ -202,25 +208,25 @@ namespace AstraCosmeris_
                 this.Left += deltaX;
                 this.Top += deltaY;
 
+                double instVelX = currentPos.X - _lastMousePos.X;
+                double instVelY = currentPos.Y - _lastMousePos.Y;
+
                 if (isSmol)
                 {
-                    double instVelX = currentPos.X - _lastMousePos.X;
-                    double instVelY = currentPos.Y - _lastMousePos.Y;
-
-                    // Đo lực ném: Chỉ ghi nhận lực khi chuột đang di chuyển thật sự
-                    // Nhân 2 để văng cho mượt, ném phát bay sang kia màn hình
-                    if (Math.Abs(instVelX) > 0.5 || Math.Abs(instVelY) > 0.5)
+                    // Tính lực ném
+                    if (Math.Abs(instVelX) > 1.0 || Math.Abs(instVelY) > 1.0)
                     {
-                        velX = instVelX * 2.0;
-                        velY = instVelY * 2.0;
+                        velX = instVelX * 1.5;
+                        velY = instVelY * 1.5;
                     }
-                    _lastMousePos = currentPos;
                 }
                 else
                 {
-                    DragRotation.Angle = Math.Clamp(deltaX * 1.5, -30, 30);
+                    // Lắc lư mượt mà và tự nhiên hơn (nhạy với tốc độ văng chuột)
+                    DragRotation.Angle = Math.Clamp(instVelX * 2.5, -45, 45);
                 }
 
+                _lastMousePos = currentPos;
                 _dragStartPos = currentPos;
             }
         }
@@ -234,16 +240,22 @@ namespace AstraCosmeris_
 
                 if (isSmol)
                 {
-                    // Thả chuột ra là cắm điện Timer Vật lý cho nó trượt ngay lập tức
+                    // ĐỌC SETTINGS VẬT LÝ
+                    string mode = DataManager.Data.Facts.ContainsKey("__PhysicsMode") ? DataManager.Data.Facts["__PhysicsMode"] : "0";
+                    if (mode == "1") { friction = 0.99; bounce = -0.95; velX *= 1.8; velY *= 1.8; } // Trơn trượt, nảy mạnh, ném bay xa
+                    else if (mode == "2") { friction = 0.85; bounce = -0.4; } // Nghiêm túc, nhanh dừng
+                    else { friction = 0.94; bounce = -0.7; } // Bình thường
+
                     physicsTimer?.Start();
                 }
                 else
                 {
+                    // Độ đàn hồi của lò xo dài và tự nhiên hơn
                     DoubleAnimation springAnim = new DoubleAnimation
                     {
                         To = 0,
-                        Duration = TimeSpan.FromMilliseconds(800),
-                        EasingFunction = new ElasticEase { Oscillations = 3, Springiness = 5, EasingMode = EasingMode.EaseOut }
+                        Duration = TimeSpan.FromMilliseconds(1000),
+                        EasingFunction = new ElasticEase { Oscillations = 4, Springiness = 4, EasingMode = EasingMode.EaseOut }
                     };
                     DragRotation.BeginAnimation(RotateTransform.AngleProperty, springAnim);
                 }
@@ -356,7 +368,14 @@ namespace AstraCosmeris_
                 this.Width = 90; this.Height = 90;
                 string path = Path.Combine(AppContext.BaseDirectory, "assets", "rolling", "rolling.png");
                 if (File.Exists(path)) PetImage.Source = new BitmapImage(new Uri(path));
-                velY = 0; velX = (rand.NextDouble() - 0.5) * 15; // Ném văng sang 2 bên
+
+                // Nạp vật lý khi mới thu nhỏ
+                string mode = DataManager.Data.Facts.ContainsKey("__PhysicsMode") ? DataManager.Data.Facts["__PhysicsMode"] : "0";
+                if (mode == "1") { friction = 0.99; bounce = -0.95; }
+                else if (mode == "2") { friction = 0.85; bounce = -0.4; }
+                else { friction = 0.94; bounce = -0.7; }
+
+                velY = 0; velX = (rand.NextDouble() - 0.5) * 15;
                 physicsTimer?.Start();
             }
             else

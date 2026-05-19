@@ -59,6 +59,7 @@
 
                 <StackPanel x:Name="TabApi" Visibility="Visible" Margin="0,40,0,0">
                     <TextBlock Text="Cấu hình Não bộ AI" FontSize="24" FontWeight="Bold" Foreground="#2F3273" Margin="0,0,0,20"/>
+
                     <TextBlock Text="Nhà cung cấp (Provider):" FontWeight="Bold" Margin="0,0,0,5"/>
                     <ComboBox x:Name="CboProvider" FontSize="15" Padding="5" SelectionChanged="CboProvider_SelectionChanged" Margin="0,0,0,15">
                         <ComboBoxItem Content="Groq"/>
@@ -68,22 +69,31 @@
                         <ComboBoxItem Content="Ollama"/>
                         <ComboBoxItem Content="OpenRouter"/>
                     </ComboBox>
-                    <TextBlock Text="Model:" FontWeight="Bold" Margin="0,0,0,5"/>
-                    <ComboBox x:Name="CboModel" FontSize="15" Padding="5" Margin="0,0,0,15"/>
+
+                    <TextBlock Text="Mã Model (Tự do nhập):" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBox x:Name="TxtModel" FontSize="15" Padding="8" Margin="0,0,0,15"/>
+
                     <TextBlock Text="API Key:" FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBox x:Name="TxtApiKey" FontSize="15" Padding="8" Margin="0,0,0,15"/>
                 </StackPanel>
 
                 <StackPanel x:Name="TabPersona" Visibility="Collapsed" Margin="0,40,0,0">
                     <TextBlock Text="Lựa chọn Tính Cách" FontSize="24" FontWeight="Bold" Foreground="#2F3273" Margin="0,0,0,20"/>
-                    <TextBlock Text="Cậu muốn Astra đối xử với cậu như thế nào?" FontStyle="Italic" Margin="0,0,0,15"/>
-                    <ComboBox x:Name="CboPersona" FontSize="16" Padding="10" SelectionChanged="CboPersona_SelectionChanged">
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                        <RadioButton x:Name="RadPresetPersona" Content="Dùng mẫu có sẵn" FontSize="16" FontWeight="Bold" Foreground="#2F3273" Margin="0,0,20,0" Checked="PersonaToggle_Checked"/>
+                        <RadioButton x:Name="RadCustomPersona" Content="Tự định nghĩa" FontSize="16" FontWeight="Bold" Foreground="#2F3273" Checked="PersonaToggle_Checked"/>
+                    </StackPanel>
+
+                    <ComboBox x:Name="CboPersona" FontSize="16" Padding="10" SelectionChanged="CboPersona_SelectionChanged" Margin="0,0,0,10">
                         <ComboBoxItem Content="🌸 Dịu dàng, nhút nhát (Mặc định)"/>
                         <ComboBoxItem Content="🔥 Nghiêm khắc, kỷ luật"/>
                         <ComboBoxItem Content="💼 Nữ Chủ Tịch (Lạnh lùng)"/>
                         <ComboBoxItem Content="🤪 Hài hước, Gen Z"/>
                     </ComboBox>
-                    <TextBlock x:Name="TxtPersonaDesc" Text="..." TextWrapping="Wrap" Margin="0,20,0,0" FontSize="14" Foreground="#555" LineHeight="22"/>
+                    <TextBlock x:Name="TxtPersonaDesc" Text="..." TextWrapping="Wrap" Margin="0,0,0,15" FontSize="14" Foreground="#555" LineHeight="22"/>
+
+                    <TextBox x:Name="TxtCustomPersona" Visibility="Collapsed" Height="120" TextWrapping="Wrap" AcceptsReturn="True" FontSize="14" Padding="10" Margin="0,0,0,15" Background="#F0F4FA" BorderBrush="#9FB2D4" Text="Nhập System Prompt của cậu vào đây..."/>
                 </StackPanel>
 
                 <StackPanel x:Name="TabMemory" Visibility="Collapsed" Margin="0,40,0,0">
@@ -110,12 +120,19 @@
                     <CheckBox x:Name="ChkSound" Content="🔊 Bật âm thanh (Ting ting) khi có thông báo" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
                     <TextBlock Text="Thời gian hiển thị (giây):" FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBox x:Name="TxtDuration" FontSize="15" Padding="8" Width="100" HorizontalAlignment="Left" Margin="0,0,0,15"/>
-
                     <Button Content="Test Thông Báo" Width="150" HorizontalAlignment="Left" Padding="10" Background="#9FB2D4" FontWeight="Bold" Cursor="Hand" Click="BtnTestNoti_Click"/>
                 </StackPanel>
 
                 <StackPanel x:Name="TabSystem" Visibility="Collapsed" Margin="0,40,0,0">
                     <TextBlock Text="Quản lý Hệ thống" FontSize="24" FontWeight="Bold" Foreground="#2F3273" Margin="0,0,0,20"/>
+
+                    <TextBlock Text="Vật lý Smol Astra (Ném văng):" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="CboPhysics" FontSize="15" Padding="5" Margin="0,0,0,20">
+                        <ComboBoxItem Content="Cân bằng (Mặc định)"/>
+                        <ComboBoxItem Content="Trơn trượt, nảy mạnh (Vui nhộn)"/>
+                        <ComboBoxItem Content="Nặng nề, nhanh dừng (Nghiêm túc)"/>
+                    </ComboBox>
+
                     <Button Content="🧹 Xóa lịch sử Chat" Padding="15" Margin="0,0,0,15" Background="#FFCDD2" Foreground="#D32F2F" FontWeight="Bold" Cursor="Hand" Click="BtnClearChat_Click"/>
                     <Button Content="⚠️ KHÔI PHỤC CÀI ĐẶT GỐC" Padding="15" Background="Red" Foreground="White" FontWeight="Bold" Cursor="Hand" Click="BtnFactoryReset_Click"/>
                 </StackPanel>
