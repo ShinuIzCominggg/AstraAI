@@ -250,6 +250,8 @@ namespace AstraCosmeris_
             string rawText = InputBox.Text.Trim();
             if (string.IsNullOrEmpty(rawText)) return;
 
+            TutorialManager.CompleteQuest("chat", parentPet);
+
             if (!_history.Contains(rawText)) _history.Add(rawText);
             _historyIndex = -1;
             InputBox.Text = "";

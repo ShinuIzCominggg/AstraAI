@@ -62,6 +62,24 @@ namespace AstraCosmeris_
             "cậu đang làm gì thế?", "cậu đã uống nước chưa?", "tớ đang chờ cậu đây!"
         };
 
+        // --- CÔNG CỤ THEO DÕI CHUỘT XUYÊN MÀN HÌNH CỦA WINDOWS ---
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(ref Win32Point pt);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        internal struct Win32Point { public int X; public int Y; }
+
+        // Các biến phục vụ độ trễ kéo thả và ném vật lý
+        private bool _isMouseDown = false;
+        private bool _isDragging = false;
+        private DateTime _mouseDownTime;
+        private System.Windows.Point _mouseDownMousePos;
+        private System.Windows.Point _mouseDownWindowPos;
+        private System.Windows.Point _lastMouseScreenPos;
+        private double _throwVelX = 0, _throwVelY = 0;
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -83,7 +101,6 @@ namespace AstraCosmeris_
             physicsTimer.Tick += PhysicsTimer_Tick;
             physicsTimer.Start();
 
-            // 👉 NẠP ẢNH DRAG VÀO RAM NGAY TỪ LÚC MỞ APP
             PreloadDragImage();
         }
 
@@ -111,7 +128,49 @@ namespace AstraCosmeris_
             catch { /* Bỏ qua nếu m lỡ tay xóa mất file */ }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e) => UpdateFrame();
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateFrame();
+
+            string dbPath = Path.Combine(AppContext.BaseDirectory, "astra_database.json");
+            bool isFirstRun = !File.Exists(dbPath);
+
+            // KỊCH BẢN 1: LẦN ĐẦU MỞ APP -> HIỆN ONBOARDING TRƯỚC
+            if (isFirstRun || string.IsNullOrEmpty(DataManager.Data.ApiKey))
+            {
+                this.Visibility = Visibility.Hidden; // Giấu Astra đi
+
+                var onboard = new OnboardingWindow();
+                onboard.ShowDialog(); // Màn hình sẽ dừng chờ user điền Form xong
+
+                // Điền xong form, load lại data và hiện Astra lên
+                DataManager.LoadData();
+                this.Visibility = Visibility.Visible;
+
+                // Khởi động Tutorial
+                if (TutorialManager.BoardWindow == null)
+                {
+                    TutorialManager.BoardWindow = new TutorialBoardWindow(this);
+                    TutorialManager.BoardWindow.Show();
+                }
+            }
+            // KỊCH BẢN 2: USER CŨ NHƯNG CHƯA HOÀN THÀNH TUTORIAL
+            else
+            {
+                if (!DataManager.Data.Facts.ContainsKey("__TutorialDone") || DataManager.Data.Facts["__TutorialDone"] != "true")
+                {
+                    if (TutorialManager.BoardWindow == null)
+                    {
+                        TutorialManager.BoardWindow = new TutorialBoardWindow(this);
+                        TutorialManager.BoardWindow.Show();
+                    }
+                }
+            }
+
+            // Thiết lập tâm xoay ban đầu ở đỉnh đầu cho Astra lớn khi vừa mở app
+            var container = PetImage.Parent as FrameworkElement;
+            if (container != null) container.RenderTransformOrigin = new System.Windows.Point(0.5, 0.1);
+        }
 
         private void CheckMorningEvents()
         {
@@ -197,6 +256,10 @@ namespace AstraCosmeris_
         public void ChangeState(PetState newState)
         {
             if (isSmol) return;
+
+            // 👉 BẢO KÊ TUYỆT ĐỐI: Nếu đang trong quá trình kéo thả, cấm mọi nguồn khác đổi trạng thái bậy bạ
+            if (_isDragging && newState != PetState.Dragging) return;
+
             currentState = newState;
 
             if (newState == PetState.Dragging) return;
@@ -234,81 +297,140 @@ namespace AstraCosmeris_
         // ==========================================
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Chỉ bắt Drag khi ấn chuột trái 1 lần (ClickCount == 1)
-            if (e.ChangedButton == MouseButton.Left && e.ClickCount == 1 && e.ButtonState == MouseButtonState.Pressed)
+            if (e.ChangedButton == MouseButton.Left && e.ClickCount == 1)
             {
-                ChangeState(PetState.Dragging); // Khóa animTimer
+                _isMouseDown = true;
+                _isDragging = false;
+                _mouseDownTime = DateTime.Now;
 
-                if (!isSmol)
-                {
-                    // 👉 LÔI ẢNH TỪ RAM RA XÀI, CHỚP MẮT LÀ HIỆN!
-                    if (_dragImageCache != null)
-                    {
-                        PetImage.Source = _dragImageCache;
-                    }
+                Win32Point pt = new Win32Point();
+                GetCursorPos(ref pt);
+                _mouseDownMousePos = new System.Windows.Point(pt.X, pt.Y);
+                _mouseDownWindowPos = new System.Windows.Point(this.Left, this.Top);
 
-                    DragRotation.BeginAnimation(RotateTransform.AngleProperty, null);
+                _throwVelX = 0; _throwVelY = 0; // Reset lực ném
+                _lastMouseScreenPos = _mouseDownMousePos;
 
-                    System.Windows.Point clickInWindow = e.GetPosition(this);
-                    double collarX = this.ActualWidth / 2;
-                    double collarY = this.ActualHeight / 3;
-                    this.Left += (clickInWindow.X - collarX);
-                    this.Top += (clickInWindow.Y - collarY);
-                }
-
-                // GỌI HÀM KÉO MƯỢT CỦA WINDOWS
-                this.DragMove();
-
-                // ---> KHI THẢ CHUỘT RA <---
-
-                if (isSmol)
-                {
-                    string mode = DataManager.Data.Facts.ContainsKey("__PhysicsMode") ? DataManager.Data.Facts["__PhysicsMode"] : "0";
-                    if (mode == "1") { friction = 0.99; bounce = -0.95; velX *= 1.8; velY *= 1.8; }
-                    else if (mode == "2") { friction = 0.85; bounce = -0.4; }
-                    else { friction = 0.94; bounce = -0.7; }
-                }
-                else
-                {
-                    ChangeState(PetState.Idle);
-                    UpdateFrame();
-
-                    DoubleAnimation springAnim = new DoubleAnimation
-                    {
-                        To = 0,
-                        Duration = TimeSpan.FromMilliseconds(1000),
-                        EasingFunction = new ElasticEase { Oscillations = 4, Springiness = 4, EasingMode = EasingMode.EaseOut }
-                    };
-                    DragRotation.BeginAnimation(RotateTransform.AngleProperty, springAnim);
-                }
+                // 👉 ĐĂNG KÝ CHIẾM GIỮ CHUỘT XUYÊN SUỐT: Dùng cho cả lớn lẫn nhỏ
+                this.CaptureMouse();
             }
         }
 
         // 2 Hàm này để làm vì trong file XAML của m đang có reference, nếu xóa đi là lỗi App
-        private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e) { /* Không cần nữa vì có DragMove() xịn xò rồi */ }
-        private void Window_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e) { /* Không cần nữa vì thả chuột là kết thúc DragMove() */ }
+        private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!_isMouseDown) return;
+
+            Win32Point pt = new Win32Point();
+            GetCursorPos(ref pt);
+            System.Windows.Point currentMousePos = new System.Windows.Point(pt.X, pt.Y);
+
+            double distance = Math.Sqrt(Math.Pow(currentMousePos.X - _mouseDownMousePos.X, 2) + Math.Pow(currentMousePos.Y - _mouseDownMousePos.Y, 2));
+            double timeHeld = (DateTime.Now - _mouseDownTime).TotalMilliseconds;
+
+            // ĐIỀU KIỆN KÍCH HOẠT DRAG
+            if (!_isDragging && (timeHeld > 150 || distance > 10))
+            {
+                _isDragging = true;
+                TutorialManager.CompleteQuest("drag", this);
+                ChangeState(PetState.Dragging);
+
+                if (_dragImageCache != null && !isSmol)
+                    PetImage.Source = _dragImageCache;
+
+                DragRotation.BeginAnimation(RotateTransform.AngleProperty, null);
+            }
+
+            // 👉 THỰC THI DI CHUYỂN
+            if (_isDragging)
+            {
+                if (!isSmol)
+                {
+                    // Astra lớn: Ép cửa sổ dịch chuyển để con trỏ chuột luôn chỉ đúng vào góc phải phía trên
+                    // Trừ đi Width để dịch lùi cửa sổ sang trái, cộng thêm chút offset (35, 15) để chuột nằm đúng nếp áo
+                    this.Left = currentMousePos.X - this.Width + 35;
+                    this.Top = currentMousePos.Y - 15;
+                }
+                else
+                {
+                    // Smol Astra: Giữ nguyên cơ chế lăn bóng theo tâm trỏ chuột ban đầu
+                    this.Left = _mouseDownWindowPos.X + (currentMousePos.X - _mouseDownMousePos.X);
+                    this.Top = _mouseDownWindowPos.Y + (currentMousePos.Y - _mouseDownMousePos.Y);
+                }
+            }
+        }
+        private void HandleDragDropNormal()
+        {
+            _isDragging = false; // <-- THÊM DÒNG NÀY ĐỂ FIX LỖI RÒ RỈ TRẠNG THÁI
+
+            ChangeState(PetState.Idle);
+            UpdateFrame();
+
+            DoubleAnimation springAnim = new DoubleAnimation
+            {
+                To = 0,
+                Duration = TimeSpan.FromMilliseconds(1000),
+                EasingFunction = new ElasticEase { Oscillations = 4, Springiness = 4, EasingMode = EasingMode.EaseOut }
+            };
+            DragRotation.BeginAnimation(RotateTransform.AngleProperty, springAnim);
+        }
+        private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isMouseDown)
+            {
+                _isMouseDown = false;
+                this.ReleaseMouseCapture(); // Giải phóng chuột trả về cho hệ thống
+
+                if (_isDragging)
+                {
+                    _isDragging = false;
+                    if (isSmol)
+                    {
+                        // TRUYỀN VẬN TỐC NÉM CHO ENGINE VẬT LÝ VÀ ĐẬP!
+                        string mode = DataManager.Data.Facts.ContainsKey("__PhysicsMode") ? DataManager.Data.Facts["__PhysicsMode"] : "0";
+
+                        if (mode == "1") { friction = 0.99; bounce = -0.95; velX = _throwVelX * 1.5; velY = _throwVelY * 1.5; }
+                        else if (mode == "2") { friction = 0.85; bounce = -0.4; velX = _throwVelX * 0.8; velY = _throwVelY * 0.8; }
+                        else { friction = 0.94; bounce = -0.7; velX = _throwVelX * 1.2; velY = _throwVelY * 1.2; }
+
+                        ChangeState(PetState.Idle);
+                    }
+                    else
+                    {
+                        // Astra lớn: Thả chuột ra là kích hoạt hiệu ứng nảy lò xo đàn hồi ngay lập tức
+                        HandleDragDropNormal();
+                    }
+                }
+            }
+        }
 
         // ==========================================
         // TINH TOÁN ĐỘ NGHIÊNG, LĂN BÓNG BẰNG TIMER BÚ BACKGROUND
         // ==========================================
         private void PhysicsTimer_Tick(object? sender, EventArgs e)
         {
-            if (currentState == PetState.Dragging)
+            if (_isDragging)
             {
-                // Khi đang kéo mượt bằng DragMove, timer này tính vận tốc ngầm!
                 double instVelX = this.Left - _lastWinX;
                 double instVelY = this.Top - _lastWinY;
 
                 if (isSmol)
                 {
-                    velX = instVelX;
-                    velY = instVelY;
-                    currentRotation += velX * 0.5;
+                    // TÍNH LỰC NÉM SMOL: Dùng LERP nhẹ (cộng dồn 50% cũ) để chống việc 
+                    // chuột bị khựng 1 ms trước khi thả làm vận tốc về 0.
+                    _throwVelX = (_throwVelX * 0.5) + (instVelX * 0.5);
+                    _throwVelY = (_throwVelY * 0.5) + (instVelY * 0.5);
+
+                    currentRotation += _throwVelX * 0.5;
                     DragRotation.Angle = currentRotation;
                 }
                 else
                 {
-                    DragRotation.Angle = Math.Clamp(instVelX * 2.5, -45, 45);
+                    // FIX LỖI GIẬT FPS ASTRA THƯỜNG: Dùng nội suy tuyến tính (LERP)
+                    // Thay vì gán giật cục, ta cho góc hiện tại từ từ chạy về targetAngle
+                    double targetAngle = Math.Clamp(instVelX * 2.5, -45, 45);
+                    currentRotation += (targetAngle - currentRotation) * 0.2;
+                    DragRotation.Angle = currentRotation;
                 }
             }
             else if (isSmol)
@@ -350,6 +472,7 @@ namespace AstraCosmeris_
             if (isFocusMode) return;
             if (e.ChangedButton == MouseButton.Left)
             {
+                TutorialManager.CompleteQuest("smartra", this);
                 ChangeState(PetState.Happy);
 
                 if (isBigChatOpen)
@@ -442,11 +565,24 @@ namespace AstraCosmeris_
 
         public void ToggleSmolMode()
         {
+            // Tự động tìm khung bọc (Grid/Border) bên ngoài đang chứa DragRotation
+            var container = PetImage.Parent as FrameworkElement;
+
             if (!isSmol)
             {
                 isSmol = true;
                 originalWidth = this.Width; originalHeight = this.Height;
-                this.Width = 90; this.Height = 90;
+
+                this.Width = 120;
+                this.Height = 120;
+
+                // 👉 ĐỔI TÂM XOAY VỀ CHÍNH GIỮA (Lăn bóng tròn cho Smol)
+                if (container != null)
+                    container.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
+
+                PetImage.Width = 90;
+                PetImage.Height = 90;
+
                 string path = Path.Combine(AppContext.BaseDirectory, "assets", "rolling", "rolling.png");
                 if (File.Exists(path)) PetImage.Source = new BitmapImage(new Uri(path));
 
@@ -461,12 +597,20 @@ namespace AstraCosmeris_
             {
                 isSmol = false;
                 this.Width = originalWidth; this.Height = originalHeight;
+
+                // 👉 ĐỔI TÂM XOAY LÊN GẦN ĐỈNH ĐẦU (Tạo hiệu ứng móc khóa đu đưa cho Astra lớn)
+                if (container != null)
+                    container.RenderTransformOrigin = new System.Windows.Point(0.5, 0.1);
+
+                PetImage.Width = double.NaN;
+                PetImage.Height = double.NaN;
+
                 ChangeState(PetState.Idle);
                 DragRotation.Angle = 0;
             }
         }
 
-        public void OpenDashboard() { if (isFocusMode) return; DataManager.TrackDashboardOpen(); if (dashboard == null || !dashboard.IsLoaded) { dashboard = new DashboardWindow(); } OpenExclusiveWindow(dashboard); }
+        public void OpenDashboard() { if (isFocusMode) return; TutorialManager.CompleteQuest("dashboard", this); DataManager.TrackDashboardOpen(); if (dashboard == null || !dashboard.IsLoaded) { dashboard = new DashboardWindow(); } OpenExclusiveWindow(dashboard); }
         public void CloseAllChats() { chatWindow?.Close(); chatWindow = null; bigChatWindow?.Close(); bigChatWindow = null; isBigChatOpen = false; }
         private void MenuSmol_Click(object sender, RoutedEventArgs e) => ToggleSmolMode();
         private void MenuBigChat_Click(object sender, RoutedEventArgs e)
@@ -480,7 +624,7 @@ namespace AstraCosmeris_
             }
         }
         private void MenuDashboard_Click(object sender, RoutedEventArgs e) => OpenDashboard();
-        private void MenuPomodoro_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) OpenExclusiveWindow(new PomodoroSetupWindow(this)); }
+        private void MenuPomodoro_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) { TutorialManager.CompleteQuest("pomodoro", this); OpenExclusiveWindow(new PomodoroSetupWindow(this)); } }
         private void MenuSettings_Click(object sender, RoutedEventArgs e) { if (!isFocusMode) OpenExclusiveWindow(new SettingsWindow()); }
         private void MenuExit_Click(object sender, RoutedEventArgs e) => this.Close();
 

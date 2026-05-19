@@ -23,6 +23,11 @@ namespace AstraCosmeris_
         {
             InitializeComponent();
             NoteData = data;
+            var mainWindow = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
+            if (mainWindow != null)
+            {
+                TutorialManager.CompleteQuest("note", mainWindow);
+            }
             TxtContent.Text = data.Content;
 
             this.Left = data.Left;
