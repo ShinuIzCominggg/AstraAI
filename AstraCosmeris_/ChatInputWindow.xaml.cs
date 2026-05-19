@@ -41,6 +41,7 @@ namespace AstraCosmeris_
         [DllImport("user32.dll")]
         static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
         const int VK_VOLUME_MUTE = 0xAD;
+        const int VK_VOLUME_UP = 0xAF;
 
         public ChatInputWindow(MainWindow parent)
         {
@@ -69,6 +70,7 @@ namespace AstraCosmeris_
                 new PaletteItem { Icon = "🗓️", Title = "/calendar", Description = "Mở Lịch trình", ActionCommand = "calendar" },
                 new PaletteItem { Icon = "⚙️", Title = "/settings", Description = "Mở Cài đặt", ActionCommand = "settings" },
                 new PaletteItem { Icon = "💬", Title = "/bigchat", Description = "Mở Chat Lịch sử", ActionCommand = "bigchat" },
+                new PaletteItem { Icon = "🎮", Title = "/gamemode creative", Description = "Chế độ sáng tạo", ActionCommand = "sys_creative" }, // EASTER EGG!
                 new PaletteItem { Icon = "👋", Title = "/exit", Description = "Đóng Astra", ActionCommand = "exit" }
             };
         }
@@ -161,19 +163,29 @@ namespace AstraCosmeris_
                 {
                     var found = new List<PaletteItem>();
                     string[] searchPaths = {
-                        Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")
+            };
+
+                    var options = new EnumerationOptions
+                    {
+                        IgnoreInaccessible = true,
+                        RecurseSubdirectories = true
                     };
 
                     foreach (var path in searchPaths)
                     {
                         if (!Directory.Exists(path)) continue;
-                        var files = Directory.GetFiles(path, $"*{query}*", SearchOption.AllDirectories).Take(5);
-                        foreach (var f in files)
+                        try
                         {
-                            found.Add(new PaletteItem { Icon = "📄", Title = Path.GetFileName(f), Description = f, ActionCommand = "open_file", MetaData = f });
+                            var files = Directory.GetFiles(path, $"*{query}*", options).Take(5);
+                            foreach (var f in files)
+                            {
+                                found.Add(new PaletteItem { Icon = "📄", Title = Path.GetFileName(f), Description = f, ActionCommand = "open_file", MetaData = f });
+                            }
                         }
+                        catch { }
                     }
                     return found;
                 });
@@ -212,16 +224,27 @@ namespace AstraCosmeris_
             if (LstSuggestions.Visibility == Visibility.Visible && LstSuggestions.SelectedItem is PaletteItem selectedItem)
             {
                 string cmd = selectedItem.ActionCommand;
-                if (cmd == "quick_task" || cmd == "quick_event" || cmd == "sys_find" || cmd == "sys_timer")
+                if (cmd == "quick_task" || cmd == "quick_event")
+                {
+                    if (InputBox.Text.Trim().Length <= 6)
+                    {
+                        InputBox.Text = selectedItem.Title.Split('[')[0].Trim() + " ";
+                        InputBox.CaretIndex = InputBox.Text.Length;
+                        return;
+                    }
+                }
+                else if (cmd == "sys_find" || cmd == "sys_timer")
                 {
                     InputBox.Text = selectedItem.Title.Split('[')[0].Trim() + " ";
                     InputBox.CaretIndex = InputBox.Text.Length;
                     return;
                 }
-
-                HandleSystemAction(cmd, selectedItem.MetaData);
-                this.Close();
-                return;
+                else
+                {
+                    HandleSystemAction(cmd, selectedItem.MetaData);
+                    this.Close();
+                    return;
+                }
             }
 
             string rawText = InputBox.Text.Trim();
@@ -269,6 +292,21 @@ namespace AstraCosmeris_
                 case "sys_mute": keybd_event(VK_VOLUME_MUTE, 0, 0, 0); ShowActionBubble("🔇 Đã chỉnh âm thanh!"); break;
                 case "sys_shutdown": Process.Start("shutdown", "/s /t 0"); break;
                 case "sys_reboot": Process.Start("shutdown", "/r /t 0"); break;
+
+                case "sys_creative":
+                    // 😈 Max Volume! Bấm volume up 50 phát đảm bảo banh nóc
+                    for (int i = 0; i < 50; i++) keybd_event(VK_VOLUME_UP, 0, 0, 0);
+
+                    // Ép vào UI Thread để MediaPlayer không bị ngỏm
+                    Task.Run(() => {
+                        System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                            var player = new System.Windows.Media.MediaPlayer();
+                            player.Open(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "assets", "creative.mp3"), UriKind.Absolute));
+                            player.Play();
+                        });
+                    });
+                    ShowActionBubble("👼 CHẾ ĐỘ SÁNG TẠO: BẬT!");
+                    break;
 
                 case "start_timer":
                     if (int.TryParse(metaData, out int mins)) { new TomatoTimerWindow(mins, 0, null, parentPet).Show(); ShowActionBubble($"⏱️ Đã đặt {mins} phút!"); }

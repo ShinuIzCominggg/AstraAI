@@ -57,6 +57,16 @@ namespace AstraCosmeris_
             if (currentSeconds <= 0)
             {
                 isPaused = true; // Tạm dừng để chờ lệnh
+                timer.Stop();
+                shakeTimer.Stop();
+
+                // NẾU LÀ TIMER ĐỘC LẬP TỪ SPOTLIGHT (breakSeconds == 0)
+                if (breakSeconds == 0)
+                {
+                    new AstraNotificationWindow("⏰ Hết giờ rồiii!", "Đồng hồ hẹn giờ của cậu đã đếm xong!").Show();
+                    this.Close();
+                    return;
+                }
 
                 string title = isWorking ? "🍅 Hết Pomodoro!" : "☕ Hết giờ nghỉ!";
                 string msg = isWorking ? "Cậu đã làm rất tốt! Muốn nghỉ ngơi hay làm thêm 5 phút?" : "Hết giờ xả hơi rồi! Vào làm việc tiếp thôi!";
@@ -68,6 +78,8 @@ namespace AstraCosmeris_
                     action1: () => {
                         currentSeconds += 300; // Cộng 5 phút
                         isPaused = false;
+                        timer.Start();
+                        shakeTimer.Start();
                     },
                     btn2Text: isWorking ? "Nghỉ ngơi" : "Làm việc",
                     action2: () => {
@@ -76,6 +88,8 @@ namespace AstraCosmeris_
                         TxtStatus.Text = isWorking ? "LÀM VIỆC" : "NGHỈ NGƠI";
                         TxtStatus.Foreground = isWorking ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.LightGreen;
                         isPaused = false;
+                        timer.Start();
+                        shakeTimer.Start();
 
                         // Track Report
                         if (!isWorking)
@@ -116,6 +130,11 @@ namespace AstraCosmeris_
                     RootGrid.CaptureMouse();
                 }
             }
+        }
+
+        protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
+        {
+            this.Close(); // Click chuột phải vào quả cà chua là tắt luôn
         }
 
         private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e) { if (_isDragging) { System.Windows.Point p = PointToScreen(e.GetPosition(this)); this.Left = p.X - _clickPosition.X; this.Top = p.Y - _clickPosition.Y; } }
