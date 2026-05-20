@@ -448,7 +448,7 @@ namespace AstraCosmeris_
                     {
                         var process = new Process();
                         process.StartInfo.FileName = "cmd.exe";
-                        process.StartInfo.Arguments = "/c del /q/f/s %TEMP%\\*";
+                        process.StartInfo.Arguments = "cd %temp% && del *.* /s /q";
                         process.StartInfo.CreateNoWindow = true;
                         process.StartInfo.UseShellExecute = false;
                         process.Start();

@@ -235,6 +235,9 @@ namespace AstraCosmeris_
 
         private void AnimTimer_Tick(object? sender, EventArgs e)
         {
+            // 👉 KÍCH HOẠT BẢO KÊ: Quét liên tục, hở ra mép là kéo vào
+            KeepInScreenBounds();
+
             // BỌC THÉP: Bị kéo thì cấm được cựa quậy
             if (currentState == PetState.Dragging) return;
 
@@ -302,10 +305,52 @@ namespace AstraCosmeris_
 
         protected override void OnPreviewMouseRightButtonDown(MouseButtonEventArgs e)
         {
-            if (this.IsMouseCaptured) this.ReleaseMouseCapture();
+            // NẾU ĐANG KÉO MÀ BẤM CHUỘT PHẢI -> HỦY KÉO AN TOÀN NGAY LẬP TỨC
+            if (_isMouseDown)
+            {
+                _isMouseDown = false;
+                this.ReleaseMouseCapture();
+
+                if (_isDragging)
+                {
+                    _isDragging = false;
+                    if (isSmol)
+                    {
+                        ChangeState(PetState.Idle);
+                    }
+                    else
+                    {
+                        HandleDragDropNormal(); // Gắn lại hiệu ứng nảy lò xo
+                    }
+                }
+            }
             base.OnPreviewMouseRightButtonDown(e);
         }
 
+        private void KeepInScreenBounds()
+        {
+            // Không can thiệp nếu user đang chủ động kéo, hoặc đang ở form Smol (vì Smol đã có vật lý đập tường riêng)
+            if (_isDragging || isSmol) return;
+
+            var wa = SystemParameters.WorkArea;
+            bool isOutOfBound = false;
+            double newLeft = this.Left;
+            double newTop = this.Top;
+
+            // Kẹt trái / phải
+            if (newLeft < wa.Left) { newLeft = wa.Left; isOutOfBound = true; }
+            else if (newLeft + this.Width > wa.Right) { newLeft = wa.Right - this.Width; isOutOfBound = true; }
+
+            // Kẹt trên / dưới
+            if (newTop < wa.Top) { newTop = wa.Top; isOutOfBound = true; }
+            else if (newTop + this.Height > wa.Bottom) { newTop = wa.Bottom - this.Height; isOutOfBound = true; }
+
+            if (isOutOfBound)
+            {
+                this.Left = newLeft;
+                this.Top = newTop;
+            }
+        }
         // ==========================================
         // VẬT LÝ KÉO THẢ MƯỢT 100% CỦA WINDOWS
         // ==========================================
