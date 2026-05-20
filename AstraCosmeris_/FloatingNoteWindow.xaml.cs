@@ -76,7 +76,7 @@ namespace AstraCosmeris_
             HandleDropLogic();
         }
 
-        private void FloatingNoteWindow_LocationChanged(object sender, EventArgs e)
+        private void FloatingNoteWindow_LocationChanged(object? sender, EventArgs e)
         {
             if (!_isDragging) return;
 

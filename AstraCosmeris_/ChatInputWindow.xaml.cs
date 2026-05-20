@@ -9,7 +9,10 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace AstraCosmeris_
 {
@@ -29,6 +32,7 @@ namespace AstraCosmeris_
         private static List<string> _history = new List<string>();
         private int _historyIndex = -1;
         private List<PaletteItem> _systemCommands = new List<PaletteItem>();
+        private bool _isSuggestionsOpen = false;
 
         // --- WIN API CHO SYSTEM CONTROLS ---
         [DllImport("user32.dll")]
@@ -71,7 +75,10 @@ namespace AstraCosmeris_
                 new PaletteItem { Icon = "⚙️", Title = "/settings", Description = "Mở Cài đặt", ActionCommand = "settings" },
                 new PaletteItem { Icon = "💬", Title = "/bigchat", Description = "Mở Chat Lịch sử", ActionCommand = "bigchat" },
                 new PaletteItem { Icon = "🎮", Title = "/gamemode creative", Description = "Chế độ sáng tạo", ActionCommand = "sys_creative" }, // EASTER EGG!
-                new PaletteItem { Icon = "👋", Title = "/exit", Description = "Đóng Astra", ActionCommand = "exit" }
+                new PaletteItem { Icon = "👋", Title = "/exit", Description = "Đóng Astra", ActionCommand = "exit" },
+                new PaletteItem { Icon = "✂️", Title = "/snip", Description = "Mở công cụ cắt/chụp màn hình", ActionCommand = "sys_snip" },
+                new PaletteItem { Icon = "🧹", Title = "/cleartemp", Description = "Dọn rác máy tính (Temp Files)", ActionCommand = "sys_cleartemp" },
+                new PaletteItem { Icon = "💀", Title = "/kill [tên app]", Description = "Tắt ép phần mềm bị treo (VD: /kill chrome)", ActionCommand = "sys_kill" },
             };
         }
 
@@ -82,7 +89,7 @@ namespace AstraCosmeris_
 
             if (string.IsNullOrWhiteSpace(text))
             {
-                LstSuggestions.Visibility = Visibility.Collapsed;
+                HideSuggestions();
                 return;
             }
 
@@ -115,8 +122,22 @@ namespace AstraCosmeris_
                     return;
                 }
 
+                // THÊM ĐOẠN NÀY
+                if (text.StartsWith("/kill "))
+                {
+                    string appName = text.Substring(6).Trim();
+                    ShowQuickList(new List<PaletteItem> { new PaletteItem { Icon = "💀", Title = $"Tiêu diệt '{appName}'", Description = "Buộc đóng ứng dụng này ngay lập tức", ActionCommand = "sys_kill", MetaData = appName } });
+                    return;
+                }
+
                 var filtered = _systemCommands.Where(c => c.Title.ToLower().Contains(text.ToLower())).ToList();
                 ShowQuickList(filtered);
+            }
+            // THÊM ĐOẠN NÀY LÀM LỆNH NOTE MỚI
+            else if (text.StartsWith("!note "))
+            {
+                string noteText = text.Substring(6).Trim();
+                ShowQuickList(new List<PaletteItem> { new PaletteItem { Icon = "📝", Title = "Dán giấy ghi chú ra màn hình", Description = noteText, ActionCommand = "quick_floating_note", MetaData = noteText } });
             }
             // 3. QUICK ADD (+, @)
             else if (text.StartsWith("+") || text.StartsWith("@"))
@@ -140,7 +161,7 @@ namespace AstraCosmeris_
             }
             else
             {
-                LstSuggestions.Visibility = Visibility.Collapsed;
+                HideSuggestions();
             }
         }
 
@@ -149,10 +170,40 @@ namespace AstraCosmeris_
             if (items.Any())
             {
                 LstSuggestions.ItemsSource = items;
-                LstSuggestions.Visibility = Visibility.Visible;
+                if (!_isSuggestionsOpen)
+                {
+                    _isSuggestionsOpen = true;
+                    SuggestionsContainer.Visibility = Visibility.Visible;
+
+                    // Mờ dần + trượt nảy nhẹ (BackEase)
+                    DoubleAnimation fadeIn = new DoubleAnimation { To = 1.0, Duration = TimeSpan.FromMilliseconds(250), EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut } };
+                    DoubleAnimation slideDown = new DoubleAnimation { From = -20, To = 0, Duration = TimeSpan.FromMilliseconds(350), EasingFunction = new BackEase { Amplitude = 0.4, EasingMode = EasingMode.EaseOut } };
+
+                    SuggestionsContainer.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+                    SuggestionsTranslate.BeginAnimation(TranslateTransform.YProperty, slideDown);
+                }
                 if (LstSuggestions.SelectedIndex == -1) LstSuggestions.SelectedIndex = 0;
             }
-            else LstSuggestions.Visibility = Visibility.Collapsed;
+            else HideSuggestions();
+        }
+
+        private void HideSuggestions()
+        {
+            if (_isSuggestionsOpen)
+            {
+                _isSuggestionsOpen = false;
+
+                // Thu lên mượt mà
+                DoubleAnimation fadeOut = new DoubleAnimation { To = 0.0, Duration = TimeSpan.FromMilliseconds(150), EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+                DoubleAnimation slideUp = new DoubleAnimation { To = -15, Duration = TimeSpan.FromMilliseconds(150), EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+
+                fadeOut.Completed += (s, e) => {
+                    if (!_isSuggestionsOpen) SuggestionsContainer.Visibility = Visibility.Collapsed;
+                };
+
+                SuggestionsContainer.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                SuggestionsTranslate.BeginAnimation(TranslateTransform.YProperty, slideUp);
+            }
         }
 
         private async Task LiveSearchFilesAsync(string query)
@@ -214,6 +265,57 @@ namespace AstraCosmeris_
                 e.Handled = true;
                 ExecuteCurrentInput();
             }
+        }
+
+        private void InputBox_SelectionChanged(object sender, RoutedEventArgs e)
+        {
+            if (!InputBox.IsLoaded) return;
+
+            try
+            {
+                // Lấy tọa độ pixel của con trỏ hiện tại
+                // Xóa phần , logicalDirection: LogicalDirection.Forward đi nhé
+                var rect = InputBox.GetRectFromCharacterIndex(InputBox.CaretIndex);
+
+                // Nếu đang ở đầu dòng hoặc chưa có chữ, rect có thể bị Empty, ta set tọa độ tay cho nó
+                if (rect.IsEmpty)
+                {
+                    rect = new Rect(2, 4, 0, 0); // Tọa độ mặc định khi ô nhập trống
+                }
+
+                // 1. TẠO ANIMATION LƯỚT ĐI MƯỢT MÀ
+                DoubleAnimation moveX = new DoubleAnimation
+                {
+                    To = rect.Left,
+                    Duration = TimeSpan.FromMilliseconds(90), // Tốc độ lướt (ms)
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                DoubleAnimation moveY = new DoubleAnimation
+                {
+                    To = rect.Top,
+                    Duration = TimeSpan.FromMilliseconds(90),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                CaretTranslate.BeginAnimation(TranslateTransform.XProperty, moveX);
+                CaretTranslate.BeginAnimation(TranslateTransform.YProperty, moveY);
+
+                // 2. TẠO ANIMATION NHẤP NHÁY
+                SmoothCaret.BeginAnimation(UIElement.OpacityProperty, null); // Dừng nhấp nháy khi đang gõ
+                SmoothCaret.Opacity = 1;
+
+                DoubleAnimation blink = new DoubleAnimation
+                {
+                    From = 1,
+                    To = 0,
+                    Duration = TimeSpan.FromMilliseconds(500),
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever,
+                    BeginTime = TimeSpan.FromMilliseconds(600) // Ngưng gõ 600ms mới bắt đầu nháy
+                };
+                SmoothCaret.BeginAnimation(UIElement.OpacityProperty, blink);
+            }
+            catch { }
         }
 
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (e.Key == System.Windows.Input.Key.Escape) this.Close(); }
@@ -336,6 +438,54 @@ namespace AstraCosmeris_
                     }
                     break;
                 case "exit": Task.Delay(500).ContinueWith(_ => System.Windows.Application.Current.Dispatcher.Invoke(() => parentPet.Close())); break;
+                case "sys_snip":
+                    Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true });
+                    ShowActionBubble("📸 Chụp ảnh nào!");
+                    break;
+
+                case "sys_cleartemp":
+                    try
+                    {
+                        var process = new Process();
+                        process.StartInfo.FileName = "cmd.exe";
+                        process.StartInfo.Arguments = "/c del /q/f/s %TEMP%\\*";
+                        process.StartInfo.CreateNoWindow = true;
+                        process.StartInfo.UseShellExecute = false;
+                        process.Start();
+                        ShowActionBubble("🧹 Đã dọn dẹp sạch sẽ rác hệ thống!");
+                    }
+                    catch { }
+                    break;
+
+                case "sys_kill":
+                    try
+                    {
+                        if (!metaData.ToLower().EndsWith(".exe")) metaData += ".exe";
+                        var killProcess = new Process();
+                        killProcess.StartInfo.FileName = "taskkill";
+                        killProcess.StartInfo.Arguments = $"/f /im {metaData}";
+                        killProcess.StartInfo.CreateNoWindow = true;
+                        killProcess.StartInfo.UseShellExecute = false;
+                        killProcess.Start();
+                        ShowActionBubble($"💀 Đã tiễn {metaData} về chầu trời!");
+                    }
+                    catch { }
+                    break;
+
+                case "quick_floating_note":
+                    var newNote = new AstraNote
+                    {
+                        Content = metaData,
+                        IsFloating = true,
+                        Left = parentPet.Left + 50,
+                        Top = parentPet.Top + 50,
+                        OrderIndex = DateTime.Now.Ticks
+                    };
+                    NoteManager.AllNotes.Add(newNote);
+                    NoteManager.SaveNotes();
+                    new FloatingNoteWindow(newNote).Show();
+                    ShowActionBubble("📝 Đã dán bùa chú!");
+                    break;
             }
         }
 

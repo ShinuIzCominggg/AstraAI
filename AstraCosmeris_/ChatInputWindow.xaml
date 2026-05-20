@@ -80,42 +80,60 @@
 
                 <TextBlock Grid.Column="0" Text="🔍" FontSize="22" VerticalAlignment="Center" Margin="5,0,12,0"/>
 
-                <TextBox x:Name="InputBox" Grid.Column="1" 
-                         Background="Transparent" BorderThickness="0" 
-                         FontSize="18" FontFamily="Segoe UI Semibold" Foreground="#2F3273"
-                         VerticalAlignment="Center" CaretBrush="#2F3273"
-                         Padding="0,5" TextWrapping="Wrap" MaxHeight="100"
-                         TextChanged="InputBox_TextChanged"
-                         PreviewKeyDown="InputBox_PreviewKeyDown"/>
+                <Grid Grid.Column="1" VerticalAlignment="Center">
+                    <TextBox x:Name="InputBox" 
+                     Background="Transparent" BorderThickness="0" 
+                     FontSize="18" FontFamily="Segoe UI Semibold" Foreground="#2F3273"
+                     TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
+                     CaretBrush="Transparent" 
+                     Padding="0,5" TextWrapping="Wrap" MaxHeight="100"
+                     TextChanged="InputBox_TextChanged"
+                     PreviewKeyDown="InputBox_PreviewKeyDown"
+                     SelectionChanged="InputBox_SelectionChanged"/>
 
-                <TextBlock Grid.Column="1" x:Name="TxtPlaceholder" Text="Gõ lệnh (/), thêm nhanh (+), hoặc chat với Astra..." 
-                           FontSize="18" FontFamily="Segoe UI" Foreground="#882F3273" 
-                           VerticalAlignment="Center" IsHitTestVisible="False" Margin="2,5,0,5"
-                           Visibility="Visible"/>
+                    <TextBlock x:Name="TxtPlaceholder" Text="Gõ lệnh (/), thêm nhanh (+), hoặc chat với Astra..." 
+                       FontSize="18" FontFamily="Segoe UI" Foreground="#882F3273" 
+                       VerticalAlignment="Center" IsHitTestVisible="False" Margin="2,0,0,0"
+                       Visibility="Visible"/>
+
+                    <Border x:Name="SmoothCaret" Width="1.5" Height="24" Background="#2F3273" 
+                    HorizontalAlignment="Left" VerticalAlignment="Top" 
+                    IsHitTestVisible="False" Margin="0" Opacity="0" CornerRadius="1">
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="CaretTranslate" X="2" Y="4"/>
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
             </Grid>
 
-            <ListBox x:Name="LstSuggestions" Grid.Row="1" 
-                     Background="White" BorderThickness="0,1,0,0" BorderBrush="#DFE9F5"
-                     MaxHeight="300" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     ItemContainerStyle="{StaticResource PaletteListBoxItem}"
-                     Visibility="Collapsed" Margin="0,0,0,10"
-                     MouseDoubleClick="LstSuggestions_MouseDoubleClick">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Width="580" Margin="5,2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="40"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="Bold" Foreground="#2F3273"/>
-                                <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#666" Margin="0,3,0,0"/>
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Border x:Name="SuggestionsContainer" Grid.Row="1" Visibility="Collapsed" Opacity="0">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="SuggestionsTranslate" Y="-20"/>
+                </Border.RenderTransform>
+
+                <ListBox x:Name="LstSuggestions" 
+                 Background="White" BorderThickness="0,1,0,0" BorderBrush="#DFE9F5"
+                 MaxHeight="300" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ItemContainerStyle="{StaticResource PaletteListBoxItem}"
+                 Margin="0,0,0,10"
+                 MouseDoubleClick="LstSuggestions_MouseDoubleClick">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Width="580" Margin="5,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="Bold" Foreground="#2F3273"/>
+                                    <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#666" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
         </Grid>
     </Border>
 </Window>

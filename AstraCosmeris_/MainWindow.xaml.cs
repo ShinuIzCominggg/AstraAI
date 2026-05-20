@@ -70,6 +70,20 @@ namespace AstraCosmeris_
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         internal struct Win32Point { public int X; public int Y; }
 
+        // --- WIN API CHO GLOBAL HOTKEY ---
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int HOTKEY_ID = 9000;
+        private const uint MOD_NONE = 0x0000;
+        private const uint MOD_CONTROL = 0x0002; // Phím Ctrl
+        private const uint VK_SPACE = 0x20;      // Phím Space
+        private IntPtr _windowHandle;
+        private System.Windows.Interop.HwndSource? _source;
+
         // Các biến phục vụ độ trễ kéo thả và ném vật lý
         private bool _isMouseDown = false;
         private bool _isDragging = false;
@@ -698,6 +712,53 @@ namespace AstraCosmeris_
             spamTimer?.Stop();
             foreach (var popup in activePopups) popup.Close();
             activePopups.Clear();
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            _windowHandle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            _source = System.Windows.Interop.HwndSource.FromHwnd(_windowHandle);
+            _source.AddHook(HwndHook);
+
+            // Đăng ký Ctrl + Space
+            RegisterHotKey(_windowHandle, HOTKEY_ID, MOD_CONTROL, VK_SPACE);
+        }
+
+        private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_HOTKEY = 0x0312;
+            if (msg == WM_HOTKEY && wParam.ToInt32() == HOTKEY_ID)
+            {
+                // Khi bấm Ctrl+Space -> Gọi lại logic y hệt như Double Click vào Astra
+                if (!isFocusMode)
+                {
+                    if (chatWindow == null || !chatWindow.IsLoaded)
+                    {
+                        chatWindow = new ChatInputWindow(this);
+                        chatWindow.Closed += (s, args) => chatWindow = null;
+                        chatWindow.Show();
+                    }
+                    else
+                    {
+                        chatWindow.Activate(); // Nếu đang mở mà bị khuất thì lôi lên đầu
+                        if (chatWindow.WindowState == WindowState.Minimized) chatWindow.WindowState = WindowState.Normal;
+                    }
+                }
+                handled = true;
+            }
+            return IntPtr.Zero;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (_source != null)
+            {
+                _source.RemoveHook(HwndHook);
+                _source = null;
+            }
+            UnregisterHotKey(_windowHandle, HOTKEY_ID); // Hủy đăng ký phím tắt
+            base.OnClosed(e);
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
