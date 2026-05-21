@@ -9,6 +9,6 @@
         </ContextMenu>
     </Window.ContextMenu>
     <Grid>
-        <Image Source="/assets/working/working.png" Stretch="Uniform"/>
+        <Image x:Name="AstraImage" Stretch="Uniform"/>
     </Grid>
 </Window>

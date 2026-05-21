@@ -1,5 +1,10 @@
-﻿using System.Windows;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace AstraCosmeris_
 {
@@ -14,12 +19,36 @@ namespace AstraCosmeris_
             Left = SystemParameters.WorkArea.Width - Width;
             Top = (SystemParameters.WorkArea.Height - Height) / 2;
         }
+
         public FocusAstraWindow(MainWindow main)
         {
             InitializeComponent();
             parentMain = main;
             this.Left = main.Left;
             this.Top = main.Top;
+
+            string state = "working";
+            string outfit = DataManager.Data.CurrentOutfit;
+
+            // 👉 SỬA BIỆN PHÁP: Tách biệt nạp Pack URI hoặc Ảnh Disk của tủ đồ
+            if (string.IsNullOrEmpty(outfit) || outfit == "Default")
+            {
+                AstraImage.Source = new BitmapImage(new Uri($"/assets/{state}/{state}.png", UriKind.RelativeOrAbsolute));
+            }
+            else
+            {
+                string basePath = AppContext.BaseDirectory;
+                string imagePath = Path.Combine(basePath, "assets", state, "wardrobe", outfit, $"{state}_{outfit}.png");
+
+                if (File.Exists(imagePath))
+                {
+                    AstraImage.Source = new BitmapImage(new Uri(imagePath, UriKind.Absolute));
+                }
+                else
+                {
+                    AstraImage.Source = new BitmapImage(new Uri($"/assets/{state}/{state}.png", UriKind.RelativeOrAbsolute));
+                }
+            }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

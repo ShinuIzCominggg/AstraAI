@@ -25,7 +25,6 @@ namespace AstraCosmeris_
         public int TasksCompleted { get; set; } = 0;
     }
 
-    // THÊM MỚI: Cấu hình thông báo
     public class NotificationConfig
     {
         public bool EnableSound { get; set; } = true;
@@ -40,16 +39,17 @@ namespace AstraCosmeris_
         public string ApiProvider { get; set; } = "Groq";
         public string ApiModel { get; set; } = "";
 
-        // THÊM MỚI: Quản lý tính cách
         public string SelectedPersona { get; set; } = "Dịu dàng";
         public string SystemPrompt { get; set; } = "Bạn là Astra, một trợ lý ảo mang tính cách của một cô gái nhút nhát, hướng nội nhưng vô cùng dịu dàng...";
+
+        // 👉 THÊM MỚI TẠI ĐÂY: Lưu trữ trạng thái bộ đồ đang mặc
+        public string CurrentOutfit { get; set; } = "Default";
 
         public Dictionary<string, string> Tasks { get; set; } = new();
         public List<AstraEvent> Events { get; set; } = new();
         public Dictionary<string, DailyStat> Stats { get; set; } = new();
         public string LastOpenedDate { get; set; } = "";
 
-        // THÊM MỚI: Cấu hình
         public NotificationConfig NotiConfig { get; set; } = new NotificationConfig();
     }
 

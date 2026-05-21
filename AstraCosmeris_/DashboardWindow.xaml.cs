@@ -17,14 +17,34 @@ namespace AstraCosmeris_
         private UcNotes viewNotes = new UcNotes();
         private UcTasks viewTasks = new UcTasks();
         private UcCanvas viewCanvas;
-        private bool isAnimating = false; // Cờ chống lag
+        private bool isAnimating = false;
 
         public DashboardWindow()
         {
             InitializeComponent();
 
-            string imagePath = Path.Combine(AppContext.BaseDirectory, "assets", "sitting", "sitting.png");
-            if (File.Exists(imagePath)) AstraImage.Source = new BitmapImage(new Uri(imagePath, UriKind.Absolute));
+            string state = "sitting";
+            string outfit = DataManager.Data.CurrentOutfit;
+
+            // 👉 SỬA BIỆN PHÁP: Fix lỗi biến mất ảnh ngồi Default ở nền Dashboard
+            if (string.IsNullOrEmpty(outfit) || outfit == "Default")
+            {
+                AstraImage.Source = new BitmapImage(new Uri($"/assets/{state}/{state}.png", UriKind.RelativeOrAbsolute));
+            }
+            else
+            {
+                string basePath = AppContext.BaseDirectory;
+                string imagePath = Path.Combine(basePath, "assets", state, "wardrobe", outfit, $"{state}_{outfit}.png");
+
+                if (File.Exists(imagePath))
+                {
+                    AstraImage.Source = new BitmapImage(new Uri(imagePath, UriKind.Absolute));
+                }
+                else
+                {
+                    AstraImage.Source = new BitmapImage(new Uri($"/assets/{state}/{state}.png", UriKind.RelativeOrAbsolute));
+                }
+            }
 
             clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             clockTimer.Tick += (s, e) => ClockText.Text = DateTime.Now.ToString("HH:mm");
@@ -34,24 +54,26 @@ namespace AstraCosmeris_
             viewCanvas = new UcCanvas(this);
         }
 
-        // Hỗ trợ thu gọn UI cho Canvas
         public void ToggleSidebar() { SidebarBorder.Visibility = SidebarBorder.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; }
-        public void ToggleFullScreen() { this.WindowState = this.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; }
+        public void ToggleFullScreen()
+        {
+            this.WindowState = this.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
 
         private void SwitchTab(System.Windows.Controls.UserControl newView)
         {
             if (isAnimating || MainContent.Content == newView) return;
             isAnimating = true;
 
-            DoubleAnimation fadeOut = new DoubleAnimation { To = 0.0, Duration = TimeSpan.FromMilliseconds(150), EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            DoubleAnimation fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
             fadeOut.Completed += (s, e) =>
             {
                 MainContent.Content = newView;
-                DoubleAnimation fadeIn = new DoubleAnimation { To = 1.0, Duration = TimeSpan.FromMilliseconds(200), EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+                DoubleAnimation fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
                 fadeIn.Completed += (s2, e2) => isAnimating = false;
-                MainContent.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+                MainContent.BeginAnimation(OpacityProperty, fadeIn);
             };
-            MainContent.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            MainContent.BeginAnimation(OpacityProperty, fadeOut);
         }
 
         private void BtnCalendar_Click(object sender, RoutedEventArgs e) => SwitchTab(viewCalendar);

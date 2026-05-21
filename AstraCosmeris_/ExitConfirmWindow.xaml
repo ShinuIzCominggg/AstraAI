@@ -11,8 +11,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Image Source="/assets/mad/mad.png" Stretch="Uniform" 
-                   VerticalAlignment="Center" HorizontalAlignment="Center" Height="420" Width="442" Grid.Column="1"/>
+            <Image x:Name="AstraImage" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center" Height="420" Width="442" Grid.Column="1"/>
 
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>

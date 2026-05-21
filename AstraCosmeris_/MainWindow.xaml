@@ -12,6 +12,7 @@
     <Window.ContextMenu>
         <ContextMenu>
             <MenuItem Header="🤏 Smol Astra" Click="MenuSmol_Click"/>
+            <MenuItem Header="👗 Wardrobe" Click="MenuWardrobe_Click"/>
             <MenuItem Header="💬 Big Chat" Click="MenuBigChat_Click"/>
             <MenuItem Header="🗂️ Dashboard" Click="MenuDashboard_Click"/>
             <MenuItem Header="🍅 Pomodoro" Click="MenuPomodoro_Click"/>
